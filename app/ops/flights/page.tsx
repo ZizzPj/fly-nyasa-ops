@@ -30,34 +30,35 @@ export default async function OpsFlightsPage() {
     .select("*")
     .order("departure_time", { ascending: true });
 
-  if (error) {
-    return (
-      <Alert title="Flights load failed" tone="red">
-        {error.message}
-      </Alert>
-    );
-  }
-
   const rows = (data ?? []) as FlightRow[];
 
   return (
     <section className="space-y-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="text-xs text-slate-600">Operations</div>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Flights</h1>
-          <div className="mt-1 text-sm text-slate-600">
-            Live inventory summary from <span className="font-mono">v_flight_inventory_summary</span>.
+      <Card
+        title="Flights"
+        subtitle="Operational flight inventory view (authoritative)."
+        right={
+          <div className="flex items-center gap-2">
+            <a
+              className="rounded-lg border bg-white px-3 py-2 text-sm hover:bg-slate-50"
+              href="/ops/flights/new"
+            >
+              + Create Flight
+            </a>
+            <a
+              className="rounded-lg border bg-white px-3 py-2 text-sm hover:bg-slate-50"
+              href="/ops"
+            >
+              Back to Command
+            </a>
           </div>
-        </div>
-
-        <a className="rounded-lg border bg-white px-3 py-2 text-sm hover:bg-slate-50" href="/ops">
-          ← Back to Command
-        </a>
-      </div>
-
-      <Card title="All flights" subtitle="Inventory: Available / Held / Confirmed / Blocked">
-        {rows.length === 0 ? (
+        }
+      >
+        {error ? (
+          <Alert title="Flights load failed" tone="red">
+            {error.message}
+          </Alert>
+        ) : rows.length === 0 ? (
           <div className="rounded-xl border bg-slate-50 p-6 text-sm text-slate-700">
             No flights found.
           </div>
@@ -65,49 +66,36 @@ export default async function OpsFlightsPage() {
           <div className="overflow-x-auto rounded-xl border bg-white">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left">
-                <tr className="border-b">
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Flight</th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Status</th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Departure</th>
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Arrival</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600">
-                    Avail
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600">
-                    Held
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600">
-                    Conf
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600">
-                    Blocked
-                  </th>
+                <tr className="[&>th]:px-4 [&>th]:py-3">
+                  <th>Flight</th>
+                  <th>Status</th>
+                  <th>Departure</th>
+                  <th>Arrival</th>
+                  <th className="text-right">Avail</th>
+                  <th className="text-right">Held</th>
+                  <th className="text-right">Conf</th>
+                  <th className="text-right">Blocked</th>
                 </tr>
               </thead>
-
-              <tbody>
+              <tbody className="[&>tr>td]:px-4 [&>tr>td]:py-3">
                 {rows.map((r) => (
                   <tr key={r.flight_id} className="border-t hover:bg-slate-50">
-                    <td className="px-4 py-3 font-semibold">
+                    <td className="font-semibold">
                       <a className="underline" href={`/ops/flights/${r.flight_id}`}>
                         {r.flight_number ?? r.flight_id}
                       </a>
-                      <div className="mt-1 text-xs text-slate-500 font-normal">
-                        <span className="font-mono">{r.flight_id}</span>
-                      </div>
                     </td>
-
-                    <td className="px-4 py-3">
-                      <Badge tone={statusTone(r.flight_status)}>{r.flight_status ?? "—"}</Badge>
+                    <td>
+                      <Badge tone={statusTone(r.flight_status)}>
+                        {r.flight_status ?? "—"}
+                      </Badge>
                     </td>
-
-                    <td className="px-4 py-3 text-slate-700">{fmt(r.departure_time)}</td>
-                    <td className="px-4 py-3 text-slate-700">{fmt(r.arrival_time)}</td>
-
-                    <td className="px-4 py-3 text-right font-medium">{r.seats_available ?? 0}</td>
-                    <td className="px-4 py-3 text-right font-medium">{r.seats_held ?? 0}</td>
-                    <td className="px-4 py-3 text-right font-medium">{r.seats_confirmed ?? 0}</td>
-                    <td className="px-4 py-3 text-right font-medium">{r.seats_blocked ?? 0}</td>
+                    <td className="text-slate-700">{fmt(r.departure_time)}</td>
+                    <td className="text-slate-700">{fmt(r.arrival_time)}</td>
+                    <td className="text-right font-medium">{r.seats_available ?? 0}</td>
+                    <td className="text-right font-medium">{r.seats_held ?? 0}</td>
+                    <td className="text-right font-medium">{r.seats_confirmed ?? 0}</td>
+                    <td className="text-right font-medium">{r.seats_blocked ?? 0}</td>
                   </tr>
                 ))}
               </tbody>

@@ -1,9 +1,35 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { setFlightStatusAction } from "@/app/ops/actions/setFlightStatus";
+import { useMemo, useState, useTransition } from "react";
+import { setFlightStatusAction } from "@/app/ops/actions/setFlightStatusAction";
 
-const STATUSES = ["SCHEDULED", "OPEN", "CLOSED", "CANCELLED"] as const;
+type FlightStatus = "SCHEDULED" | "OPEN" | "CLOSED" | "CANCELLED" | "DEPARTED";
+
+const STATUSES: FlightStatus[] = ["SCHEDULED", "OPEN", "CLOSED", "DEPARTED", "CANCELLED"];
+
+function norm(s: string | null | undefined): FlightStatus | null {
+  const v = (s ?? "").toUpperCase();
+  if (v === "SCHEDULED" || v === "OPEN" || v === "CLOSED" || v === "CANCELLED" || v === "DEPARTED")
+    return v;
+  return null;
+}
+
+function canTransition(current: FlightStatus | null, next: FlightStatus) {
+  // Conservative lifecycle rules (matches FlightLifecycleControls):
+  // - CANCELLED/DEPARTED are terminal
+  // - SCHEDULED -> OPEN/CANCELLED
+  // - OPEN -> CLOSED/DEPARTED/CANCELLED
+  // - CLOSED -> OPEN/CANCELLED
+  if (!current) return false;
+  if (current === "CANCELLED" || current === "DEPARTED") return false;
+  if (next === current) return false;
+
+  if (current === "SCHEDULED") return next === "OPEN" || next === "CANCELLED";
+  if (current === "OPEN") return next === "CLOSED" || next === "DEPARTED" || next === "CANCELLED";
+  if (current === "CLOSED") return next === "OPEN" || next === "CANCELLED";
+
+  return false;
+}
 
 export function FlightStatusControl({
   flightId,
@@ -12,37 +38,63 @@ export function FlightStatusControl({
   flightId: string;
   currentStatus: string | null;
 }) {
-  const [value, setValue] = useState<string>(currentStatus ?? "SCHEDULED");
   const [isPending, startTransition] = useTransition();
 
-  const disabled = isPending || value === (currentStatus ?? "");
+  const cur = useMemo(() => norm(currentStatus), [currentStatus]);
+
+  const [value, setValue] = useState<FlightStatus>(() => norm(currentStatus) ?? "SCHEDULED");
+
+  // Keep select in sync if server status changes after action/revalidate
+  // (only when not interacting)
+  const effectiveCur = cur ?? "SCHEDULED";
+
+  const terminal = effectiveCur === "CANCELLED" || effectiveCur === "DEPARTED";
+  const allowed = canTransition(effectiveCur, value);
+
+  const disabledApply =
+    isPending || terminal || value === effectiveCur || !allowed;
 
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
       <div className="flex flex-col">
         <label className="text-xs text-slate-600">Flight Status</label>
+
         <select
-          className="rounded border px-2 py-1 text-sm"
+          className="rounded-lg border bg-white px-3 py-2 text-sm"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
-          disabled={isPending}
+          onChange={(e) => setValue(norm(e.target.value) ?? "SCHEDULED")}
+          disabled={isPending || terminal}
         >
           {STATUSES.map((s) => (
-            <option key={s} value={s}>
+            <option key={s} value={s} disabled={!canTransition(effectiveCur, s) && s !== effectiveCur}>
               {s}
             </option>
           ))}
         </select>
+
+        {terminal ? (
+          <div className="mt-2 text-xs text-slate-600">
+            This flight is <b>{effectiveCur}</b> (terminal). No further transitions allowed.
+          </div>
+        ) : value !== effectiveCur && !allowed ? (
+          <div className="mt-2 text-xs text-red-700">
+            Transition not allowed: <b>{effectiveCur}</b> → <b>{value}</b>
+          </div>
+        ) : (
+          <div className="mt-2 text-xs text-slate-500">
+            Current: <b>{effectiveCur}</b>
+          </div>
+        )}
       </div>
 
       <button
-        className="mt-4 rounded bg-slate-900 px-3 py-2 text-sm text-white disabled:opacity-50 sm:mt-0"
-        disabled={disabled}
+        className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+        disabled={disabledApply}
         onClick={() => {
-          if (value === (currentStatus ?? "")) return;
+          if (disabledApply) return;
 
           const ok = confirm(
-            `Change flight status from "${currentStatus ?? "—"}" to "${value}"?\n\nThis affects operational availability.`
+            `Change flight status from "${effectiveCur}" to "${value}"?\n\nThis affects reservation availability and operations.`
           );
           if (!ok) return;
 

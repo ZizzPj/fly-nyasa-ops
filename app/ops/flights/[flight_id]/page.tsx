@@ -2,10 +2,12 @@ import { requireOpsUser } from "@/lib/auth/guard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 
-import { FlightStatusControl } from "./FlightStatusControl";
 import { Card } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { Badge, statusTone } from "@/components/ui/Badge";
+
+import { FlightStatusControl } from "./FlightStatusControl";
+import { FlightQuickActions } from "./FlightQuickActions";
 
 function isUuid(v: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
@@ -13,7 +15,10 @@ function isUuid(v: string) {
 
 function fmt(iso: string | null | undefined) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleString();
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  // stable-ish formatting for server components is OK; this is not a client component
+  return d.toISOString().replace("T", " ").slice(0, 16) + " UTC";
 }
 
 type FlightSummary = {
@@ -85,12 +90,11 @@ export default async function FlightDetailPage({
 
   return (
     <section className="space-y-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+      {/* Header */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="text-xs text-slate-600">Flight detail</div>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-            {f.flight_number ?? f.flight_id}
-          </h1>
+          <h1 className="mt-1 text-2xl font-semibold">{f.flight_number ?? f.flight_id}</h1>
           <div className="mt-1 text-sm text-slate-700">
             Departure: {fmt(f.departure_time)} · Arrival: {fmt(f.arrival_time)}
           </div>
@@ -98,15 +102,16 @@ export default async function FlightDetailPage({
 
         <div className="flex flex-col items-start gap-2 sm:items-end">
           <Badge tone={statusTone(f.flight_status)}>{f.flight_status ?? "—"}</Badge>
-          <a className="text-sm font-medium text-slate-700 underline" href="/app/ops/flights">
+          <a className="text-sm underline text-slate-700" href="/ops/flights">
             Back to Flights
           </a>
         </div>
       </div>
 
+      {/* Operational Controls */}
       <Card
         title="Operational Controls"
-        subtitle="All state changes are server-enforced and auditable."
+        subtitle="Quick actions for standard operations. Advanced status control is also available."
         right={<FlightStatusControl flightId={f.flight_id} currentStatus={f.flight_status} />}
       >
         <div className="grid gap-4 md:grid-cols-4">
@@ -116,11 +121,27 @@ export default async function FlightDetailPage({
           <Stat title="Blocked" value={f.seats_blocked ?? 0} />
         </div>
 
+        <div className="mt-4 rounded-xl border bg-white p-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-sm font-semibold text-slate-900">Flight lifecycle</div>
+              <div className="mt-1 text-sm text-slate-600">
+                Open/Close/Depart/Cancel. Changes are server-side and reflected immediately.
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-3">
+            <FlightQuickActions flightId={f.flight_id} currentStatus={f.flight_status} />
+          </div>
+        </div>
+
         <div className="mt-4 rounded-xl border bg-slate-50 p-3 text-sm text-slate-700">
           Inventory counts are derived from the authoritative flight inventory view.
         </div>
       </Card>
 
+      {/* Bookings */}
       <Card title="Bookings on this flight" subtitle="Linked bookings derived from v_booking_operations.">
         {bErr ? (
           <Alert title="Bookings load failed" tone="red">

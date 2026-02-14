@@ -6,8 +6,9 @@ import { Card } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { Badge, statusTone } from "@/components/ui/Badge";
 
-import { ConfirmBookingButton } from "./ConfirmBookingButton";
 import { CancelBookingButton } from "./CancelBookingButton";
+import { ConfirmBookingButton } from "./ConfirmBookingButton";
+import { ConfirmCharterBookingButton } from "./ConfirmCharterBookingButton";
 
 function isUuid(v: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -35,12 +36,6 @@ type BookingRow = {
   seat_count: number | null;
   charter_count: number | null;
 };
-
-function toneForBookingType(t: string | null) {
-  // Keep this neutral unless you explicitly mapped booking types to tones.
-  // Avoid reusing statusTone() if it assumes status values.
-  return "slate" as const;
-}
 
 export default async function BookingDetailPage({
   params,
@@ -80,81 +75,54 @@ export default async function BookingDetailPage({
 
   const b = data as BookingRow;
 
+  const bookingType = (b.booking_type ?? "").toUpperCase();
   const status = (b.status ?? "").toUpperCase();
-  const canConfirm = status === "HELD" || status === "DRAFT";
-  const isConfirmed = status === "CONFIRMED";
-  const isCancelled = status === "CANCELLED";
 
   return (
     <section className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="text-xs text-slate-600">Booking detail</div>
           <h1 className="mt-1 text-2xl font-semibold">{b.booking_id}</h1>
 
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Badge tone={statusTone(b.status)}>{b.status ?? "—"}</Badge>
-            <Badge tone={toneForBookingType(b.booking_type)}>
-              {b.booking_type ?? "—"}
-            </Badge>
-          </div>
-
-          <div className="mt-3 text-sm text-slate-700">
-            Linked flight:{" "}
-            <a className="underline" href={`/ops/flights/${b.flight_id}`}>
-              {b.flight_number ?? b.flight_id}
-            </a>
+            <Badge tone={statusTone(b.booking_type)}>{b.booking_type ?? "—"}</Badge>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="w-full sm:w-auto">
-          <div className="rounded-xl border bg-white p-3 shadow-sm">
-            <div className="text-xs font-semibold text-slate-600">
-              Operational Actions
-            </div>
+        <div className="flex flex-col items-start gap-2 sm:items-end">
+          {/* SEAT confirm */}
+          <ConfirmBookingButton bookingId={b.booking_id} status={b.status} />
 
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-              <ConfirmBookingButton bookingId={b.booking_id} status={b.status} />
-              <CancelBookingButton bookingId={b.booking_id} status={b.status} />
-            </div>
+          {/* CHARTER confirm */}
+          <ConfirmCharterBookingButton
+            bookingId={b.booking_id}
+            status={b.status}
+            bookingType={b.booking_type}
+          />
 
-            <div className="mt-2 text-xs text-slate-500">
-              {isCancelled
-                ? "This booking is cancelled. Inventory is released."
-                : isConfirmed
-                ? "This booking is confirmed. Cancellation releases inventory atomically."
-                : canConfirm
-                ? "This booking can be confirmed by Ops/Admin."
-                : "This booking cannot be confirmed from its current status."}
-            </div>
+          {/* Cancel */}
+          <CancelBookingButton bookingId={b.booking_id} status={b.status} />
 
-            <div className="mt-3">
-              <a className="text-sm underline text-slate-700" href="/ops/bookings">
-                Back to Bookings
-              </a>
-            </div>
-          </div>
+          <a className="text-sm underline text-slate-700" href="/ops/bookings">
+            Back to Bookings
+          </a>
         </div>
       </div>
 
       {/* Timeline */}
-      <Card
-        title="Booking timeline"
-        subtitle="Audit-safe timestamps from the authoritative view."
-      >
+      <Card title="Booking timeline" subtitle="Audit-safe timestamps from the authoritative view.">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Created" value={fmt(b.created_at)} />
           <Field label="Last updated" value={fmt(b.updated_at)} />
         </div>
       </Card>
 
-      {/* Flight */}
-      <Card
-        title="Flight reference"
-        subtitle="This booking is attached to a specific scheduled flight."
-      >
+      {/* Flight Reference */}
+      <Card title="Flight reference" subtitle="This booking is attached to a specific scheduled flight.">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="text-sm font-semibold">
@@ -162,9 +130,7 @@ export default async function BookingDetailPage({
                 {b.flight_number ?? b.flight_id}
               </a>
             </div>
-            <div className="mt-1 text-sm text-slate-600">
-              Departure: {fmt(b.departure_time)}
-            </div>
+            <div className="mt-1 text-sm text-slate-600">Departure: {fmt(b.departure_time)}</div>
           </div>
 
           <a
@@ -182,11 +148,17 @@ export default async function BookingDetailPage({
         <Stat title="Charter Count" value={b.charter_count ?? 0} />
       </div>
 
-      {/* Ops note */}
-      {isConfirmed ? (
+      {/* Operational note */}
+      {status === "CONFIRMED" ? (
         <Alert title="Operational note" tone="slate">
-          This booking is confirmed. Any cancellation will release inventory
-          atomically via database RPC.
+          This booking is confirmed. Any cancellation will release inventory atomically via database RPC.
+        </Alert>
+      ) : null}
+
+      {bookingType === "CHARTER" && status === "HELD" ? (
+        <Alert title="Charter hold" tone="slate">
+          This booking is currently holding a full-flight charter (inventory: OPTIONED/HELD). Confirming will
+          lock it as CONFIRMED.
         </Alert>
       ) : null}
     </section>
