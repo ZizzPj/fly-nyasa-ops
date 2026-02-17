@@ -54,6 +54,10 @@ export function OpsNav() {
       >
         + New Reservation
       </a>
+      <a className="text-sm underline text-slate-700" href="/ops/reports">
+  Reports
+</a>
+
     </nav>
   );
 }

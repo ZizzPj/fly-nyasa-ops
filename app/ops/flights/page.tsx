@@ -16,9 +16,13 @@ type FlightRow = {
   seats_blocked: number | null;
 };
 
-function fmt(iso: string | null | undefined) {
+// ✅ Stable formatter (no locale drift; same everywhere)
+function fmtUtc(iso: string | null | undefined) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleString();
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  // "2026-02-15 14:30 UTC"
+  return d.toISOString().replace("T", " ").slice(0, 16) + " UTC";
 }
 
 export default async function OpsFlightsPage() {
@@ -29,6 +33,37 @@ export default async function OpsFlightsPage() {
     .from("v_flight_inventory_summary")
     .select("*")
     .order("departure_time", { ascending: true });
+
+  if (error) {
+    return (
+      <section className="space-y-6">
+        <Card
+          title="Flights"
+          subtitle="Operational flight inventory view (authoritative)."
+          right={
+            <div className="flex items-center gap-2">
+              <a
+                className="rounded-lg border bg-white px-3 py-2 text-sm hover:bg-slate-50"
+                href="/ops/flights/new"
+              >
+                + Create Flight
+              </a>
+              <a
+                className="rounded-lg border bg-white px-3 py-2 text-sm hover:bg-slate-50"
+                href="/ops"
+              >
+                Back to Command
+              </a>
+            </div>
+          }
+        >
+          <Alert title="Flights load failed" tone="red">
+            {error.message}
+          </Alert>
+        </Card>
+      </section>
+    );
+  }
 
   const rows = (data ?? []) as FlightRow[];
 
@@ -54,11 +89,7 @@ export default async function OpsFlightsPage() {
           </div>
         }
       >
-        {error ? (
-          <Alert title="Flights load failed" tone="red">
-            {error.message}
-          </Alert>
-        ) : rows.length === 0 ? (
+        {rows.length === 0 ? (
           <div className="rounded-xl border bg-slate-50 p-6 text-sm text-slate-700">
             No flights found.
           </div>
@@ -86,12 +117,10 @@ export default async function OpsFlightsPage() {
                       </a>
                     </td>
                     <td>
-                      <Badge tone={statusTone(r.flight_status)}>
-                        {r.flight_status ?? "—"}
-                      </Badge>
+                      <Badge tone={statusTone(r.flight_status)}>{r.flight_status ?? "—"}</Badge>
                     </td>
-                    <td className="text-slate-700">{fmt(r.departure_time)}</td>
-                    <td className="text-slate-700">{fmt(r.arrival_time)}</td>
+                    <td className="text-slate-700">{fmtUtc(r.departure_time)}</td>
+                    <td className="text-slate-700">{fmtUtc(r.arrival_time)}</td>
                     <td className="text-right font-medium">{r.seats_available ?? 0}</td>
                     <td className="text-right font-medium">{r.seats_held ?? 0}</td>
                     <td className="text-right font-medium">{r.seats_confirmed ?? 0}</td>

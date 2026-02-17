@@ -28,17 +28,12 @@ type CharterHoldResult = {
   held_until?: string;
 };
 
-/**
- * ✅ 3.4 — Stable labels + strict hold gating
- * - Prevent hydration mismatch by using a stable UTC formatter for dropdown labels
- * - Enforce: holds can ONLY be created when flight status is OPEN (UI guard)
- *   (DB remains authority, this is just UX correctness)
- */
-
-function fmtStable(iso: string | null | undefined) {
+// ✅ Stable formatter (same output server/client)
+function fmtUtcStable(iso: string | null | undefined) {
   if (!iso) return "—";
   const d = new Date(iso);
-  // Always same output everywhere
+  if (Number.isNaN(d.getTime())) return "—";
+
   return new Intl.DateTimeFormat("en-GB", {
     year: "numeric",
     month: "2-digit",
@@ -50,9 +45,8 @@ function fmtStable(iso: string | null | undefined) {
   }).format(d);
 }
 
-
+// Optional UX rule: only OPEN flights can receive holds
 function canCreateHoldOnFlight(status: string | null | undefined) {
-  // ✅ 3.4 rule: only OPEN flights can receive new holds
   return (status ?? "").toUpperCase() === "OPEN";
 }
 
@@ -133,17 +127,10 @@ export function ReservationsCreateForm({ flights }: { flights: FlightRow[] }) {
     startTransition(async () => {
       try {
         if (mode === "SEAT") {
-          const data = await createSeatHoldAction({
-            flightId,
-            seatCount,
-            holdMinutes,
-          });
+          const data = await createSeatHoldAction({ flightId, seatCount, holdMinutes });
           setResult((data?.[0] ?? data) as SeatHoldResult);
         } else {
-          const data = await createCharterHoldAction({
-            flightId,
-            holdMinutes,
-          });
+          const data = await createCharterHoldAction({ flightId, holdMinutes });
           setResult((data?.[0] ?? data) as CharterHoldResult);
         }
       } catch (e: any) {
@@ -263,36 +250,24 @@ export function ReservationsCreateForm({ flights }: { flights: FlightRow[] }) {
           onClick={submit}
           type="button"
         >
-          {pending
-            ? "Creating hold..."
-            : mode === "SEAT"
-            ? "Create SEAT HOLD"
-            : "Create CHARTER HOLD"}
+          {pending ? "Creating hold..." : mode === "SEAT" ? "Create SEAT HOLD" : "Create CHARTER HOLD"}
         </button>
 
         {bookingId ? (
-          <a
-            className="rounded-lg border bg-white px-4 py-2 text-sm hover:bg-slate-50"
-            href={`/ops/bookings/${bookingId}`}
-          >
+          <a className="rounded-lg border bg-white px-4 py-2 text-sm hover:bg-slate-50" href={`/ops/bookings/${bookingId}`}>
             View booking
           </a>
         ) : null}
 
-        <a
-          className="rounded-lg border bg-white px-4 py-2 text-sm hover:bg-slate-50"
-          href="/ops/bookings"
-        >
+        <a className="rounded-lg border bg-white px-4 py-2 text-sm hover:bg-slate-50" href="/ops/bookings">
           Open bookings list
         </a>
       </div>
 
-      {/* Errors */}
       {err ? (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{err}</div>
       ) : null}
 
-      {/* Result */}
       {result ? (
         <div className="rounded-xl border bg-slate-50 p-4 text-sm text-slate-800">
           <div className="font-semibold">Hold created</div>
@@ -318,9 +293,7 @@ export function ReservationsCreateForm({ flights }: { flights: FlightRow[] }) {
             <div>
               <div className="text-xs text-slate-600">Held until</div>
               <div className="font-semibold">
-                {(result as any)?.held_until
-                  ? fmtUtcStable((result as any).held_until)
-                  : "—"}
+                {(result as any)?.held_until ? fmtUtcStable((result as any).held_until) : "—"}
               </div>
             </div>
           </div>
