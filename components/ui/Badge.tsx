@@ -27,8 +27,15 @@ export function Badge({
 
 export function statusTone(status?: string | null) {
   const s = (status ?? "").toUpperCase();
-  if (s === "OPEN" || s === "CONFIRMED" || s === "AVAILABLE") return "green";
-  if (s === "CANCELLED" || s === "CLOSED") return "red";
-  if (s === "HELD" || s === "DRAFT" || s === "SCHEDULED") return "amber";
+
+  // ✅ "positive" / completed
+  if (s === "OPEN" || s === "TICKETED" || s === "AVAILABLE") return "green";
+
+  // ✅ "danger" / terminal
+  if (s === "CANCELLED" || s === "CLOSED" || s === "UNAVAILABLE") return "red";
+
+  // ✅ "in-progress" / operational attention
+  if (s === "RESERVED" || s === "DRAFT" || s === "SCHEDULED" || s === "OPTIONED") return "amber";
+
   return "slate";
 }

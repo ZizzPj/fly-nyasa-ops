@@ -7,9 +7,11 @@ type NavItem = { href: string; label: string };
 const NAV: NavItem[] = [
   { href: "/ops", label: "Command" },
   { href: "/ops/flights", label: "Flights" },
-  { href: "/ops/bookings", label: "Bookings" },
   { href: "/ops/reservations", label: "Reservations" },
+  { href: "/ops/bookings", label: "Bookings" },
+  { href: "/ops/reports", label: "Reports" },
 ];
+
 
 function isActive(pathname: string, href: string) {
   if (href === "/ops") return pathname === "/ops";
@@ -54,9 +56,6 @@ export function OpsNav() {
       >
         + New Reservation
       </a>
-      <a className="text-sm underline text-slate-700" href="/ops/reports">
-  Reports
-</a>
 
     </nav>
   );

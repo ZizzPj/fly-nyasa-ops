@@ -162,8 +162,8 @@ export default async function OpsReportsPage({
             <select name="status" defaultValue={status} className="mt-1 rounded-lg border bg-white px-3 py-2 text-sm">
               <option value="">All</option>
               <option value="DRAFT">DRAFT</option>
-              <option value="HELD">HELD</option>
-              <option value="CONFIRMED">CONFIRMED</option>
+              <option value="RESERVED">RESERVED</option>
+              <option value="TICKETED">TICKETED</option>
               <option value="CANCELLED">CANCELLED</option>
             </select>
           </div>

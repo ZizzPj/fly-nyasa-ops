@@ -8,29 +8,21 @@ export default async function NewFlightPage() {
   await requireOpsUser();
   const supabase = await createSupabaseServerClient();
 
+  // You need a view or query that returns routes with readable names.
   const { data: routes, error: rErr } = await supabase
-    .from("routes")
-    .select("id,origin_airport,destination_airport,is_active")
-    .eq("is_active", true)
-    .order("origin_airport");
+    .from("v_routes_display")
+    .select("*")
+    .order("origin_name", { ascending: true });
 
   const { data: aircraft, error: aErr } = await supabase
-    .from("aircraft")
-    .select("id,registration_code,model,status")
-    .eq("status", "ACTIVE")
-    .order("registration_code");
+    .from("v_aircraft_with_seat_config")
+    .select("*")
+    .order("model", { ascending: true });
 
-  const { data: seatConfigs, error: sErr } = await supabase
-    .from("seat_configurations")
-    .select("id,aircraft_id,version,is_active")
-    .eq("is_active", true)
-    .order("version", { ascending: false });
-
-  const err = rErr ?? aErr ?? sErr;
-  if (err) {
+  if (rErr || aErr) {
     return (
-      <Alert title="Load failed" tone="red">
-        {err.message}
+      <Alert title="Setup required" tone="red">
+        {rErr?.message ?? aErr?.message}
       </Alert>
     );
   }
@@ -40,15 +32,13 @@ export default async function NewFlightPage() {
       <div>
         <div className="text-xs text-slate-600">Flights</div>
         <h1 className="mt-1 text-2xl font-semibold">Create Flight</h1>
-        <div className="text-sm text-slate-700">Creates a scheduled flight and generates inventory.</div>
+        <div className="text-sm text-slate-700">
+          Add a flight, generate seat inventory, and prepare it for bookings.
+        </div>
       </div>
 
-      <Card title="New Flight" subtitle="Creates flight + seat inventory atomically">
-        <CreateFlightForm
-          routes={(routes ?? []) as any}
-          aircraft={(aircraft ?? []) as any}
-          seatConfigs={(seatConfigs ?? []) as any}
-        />
+      <Card title="New Flight" subtitle="Ops-friendly: choose route + aircraft, no IDs.">
+        <CreateFlightForm routes={routes ?? []} aircraft={aircraft ?? []} />
       </Card>
     </section>
   );

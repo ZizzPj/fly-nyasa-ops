@@ -11,9 +11,7 @@ import { ConfirmBookingButton } from "./ConfirmBookingButton";
 import { ConfirmCharterBookingButton } from "./ConfirmCharterBookingButton";
 
 function isUuid(v: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    v
-  );
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
 }
 
 function fmt(iso: string | null | undefined) {
@@ -94,10 +92,10 @@ export default async function BookingDetailPage({
 
         {/* Actions */}
         <div className="flex flex-col items-start gap-2 sm:items-end">
-          {/* SEAT confirm */}
+          {/* Seat: confirm (reserved -> ticketed) */}
           <ConfirmBookingButton bookingId={b.booking_id} status={b.status} />
 
-          {/* CHARTER confirm */}
+          {/* Charter: confirm (reserved -> ticketed) */}
           <ConfirmCharterBookingButton
             bookingId={b.booking_id}
             status={b.status}
@@ -122,7 +120,7 @@ export default async function BookingDetailPage({
       </Card>
 
       {/* Flight Reference */}
-      <Card title="Flight reference" subtitle="This booking is attached to a specific scheduled flight.">
+      <Card title="Flight reference" subtitle="This booking is attached to a scheduled flight.">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="text-sm font-semibold">
@@ -144,21 +142,20 @@ export default async function BookingDetailPage({
 
       {/* Counts */}
       <div className="grid gap-4 sm:grid-cols-2">
-        <Stat title="Seat Count" value={b.seat_count ?? 0} />
-        <Stat title="Charter Count" value={b.charter_count ?? 0} />
+        <Stat title="Seat count" value={b.seat_count ?? 0} />
+        <Stat title="Charter count" value={b.charter_count ?? 0} />
       </div>
 
-      {/* Operational note */}
-      {status === "CONFIRMED" ? (
+      {/* Operational Notes */}
+      {status === "TICKETED" ? (
         <Alert title="Operational note" tone="slate">
-          This booking is confirmed. Any cancellation will release inventory atomically via database RPC.
+          This booking is <b>ticketed</b>. Cancelling will release inventory atomically via database RPC.
         </Alert>
       ) : null}
 
-      {bookingType === "CHARTER" && status === "HELD" ? (
-        <Alert title="Charter hold" tone="slate">
-          This booking is currently holding a full-flight charter (inventory: OPTIONED/HELD). Confirming will
-          lock it as CONFIRMED.
+      {bookingType === "CHARTER" && status === "RESERVED" ? (
+        <Alert title="Charter reservation" tone="slate">
+          This booking is <b>reserved</b> as a full-flight charter hold. Ticketing will lock it as <b>ticketed</b>.
         </Alert>
       ) : null}
     </section>

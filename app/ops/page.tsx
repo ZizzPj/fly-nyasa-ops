@@ -111,7 +111,7 @@ export default async function OpsCommandCenter() {
       <div className="grid gap-4 lg:grid-cols-4">
         <Kpi title="Upcoming flights (14 days)" value={String(upcomingCount)} />
         <Kpi title="Recent booking updates" value={String(recentBookingsCount)} />
-        <Kpi title="Seats confirmed (upcoming)" value={String(seatsConfirmed)} />
+        <Kpi title="Seats ticketed (upcoming)" value={String(seatsConfirmed)} />
         <Kpi title="Seats available (upcoming)" value={String(seatsAvailable)} />
       </div>
 
@@ -158,9 +158,10 @@ export default async function OpsCommandCenter() {
 
                         <div className="mt-3 grid grid-cols-4 gap-2 text-xs text-slate-600">
                           <MiniStat label="Avail" value={r.seats_available ?? 0} />
-                          <MiniStat label="Held" value={r.seats_held ?? 0} />
-                          <MiniStat label="Conf" value={r.seats_confirmed ?? 0} />
+                          <MiniStat label="Reserved" value={r.seats_held ?? 0} />
+                          <MiniStat label="Ticketed" value={r.seats_confirmed ?? 0} />
                           <MiniStat label="Blocked" value={r.seats_blocked ?? 0} />
+
                         </div>
                       </a>
                     ))}
@@ -219,11 +220,12 @@ export default async function OpsCommandCenter() {
 
       {/* Optional: show held pressure to ops */}
       {seatsHeld > 0 ? (
-        <Alert title="Operational notice" tone="amber">
-          There are currently <strong>{seatsHeld}</strong> seats held in the upcoming 14-day window.
-          Ensure holds are confirmed or released as appropriate.
-        </Alert>
-      ) : null}
+  <Alert title="Operational notice" tone="amber">
+    There are currently <strong>{seatsHeld}</strong> seats <strong>reserved</strong> in the upcoming 14-day window.
+    Ensure reservations are ticketed or released as appropriate.
+  </Alert>
+) : null}
+
     </section>
   );
 }
