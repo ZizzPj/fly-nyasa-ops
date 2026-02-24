@@ -147,11 +147,11 @@ export default async function BookingDetailPage({
       </div>
 
       {/* Operational Notes */}
-      {status === "TICKETED" ? (
-        <Alert title="Operational note" tone="slate">
-          This booking is <b>ticketed</b>. Cancelling will release inventory atomically via database RPC.
-        </Alert>
-      ) : null}
+      {status === "CONFIRMED" ? (
+  <Alert title="Operational note" tone="slate">
+    This booking is <b>confirmed</b>. Cancelling will release inventory atomically via database RPC.
+  </Alert>
+) : null}
 
       {bookingType === "CHARTER" && status === "RESERVED" ? (
         <Alert title="Charter reservation" tone="slate">
