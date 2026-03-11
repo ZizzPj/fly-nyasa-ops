@@ -9,16 +9,24 @@ const NAV: NavItem[] = [
   { href: "/ops/flights", label: "Flights" },
   { href: "/ops/reservations", label: "Reservations" },
   { href: "/ops/bookings", label: "Bookings" },
+  { href: "/ops/rules", label: "Rules" },
   { href: "/ops/reports", label: "Reports" },
 ];
-
 
 function isActive(pathname: string, href: string) {
   if (href === "/ops") return pathname === "/ops";
   return pathname === href || pathname.startsWith(href + "/");
 }
 
-function NavLink({ href, label, active }: { href: string; label: string; active: boolean }) {
+function NavLink({
+  href,
+  label,
+  active,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+}) {
   return (
     <a
       href={href}
@@ -49,14 +57,12 @@ export function OpsNav() {
         ))}
       </div>
 
-      {/* Primary ops CTA: create reservation */}
       <a
         href="/ops/reservations/new"
         className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
       >
         + New Reservation
       </a>
-
     </nav>
   );
 }
