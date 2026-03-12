@@ -8,6 +8,7 @@ import { Badge, statusTone } from "@/components/ui/Badge";
 
 import { FlightStatusControl } from "./FlightStatusControl";
 import { FlightQuickActions } from "./FlightQuickActions";
+import { ReactivateFlightButton } from "./ReactivateFlightButton";
 
 function isUuid(v: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
@@ -17,8 +18,21 @@ function fmt(iso: string | null | undefined) {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  // stable-ish formatting for server components is OK; this is not a client component
   return d.toISOString().replace("T", " ").slice(0, 16) + " UTC";
+}
+
+function flightStatusLabel(status: string | null | undefined) {
+  const s = (status ?? "").toUpperCase();
+  if (s === "OPEN") return "Confirmed";
+  if (s === "DEPARTED") return "Ticketed";
+  if (s === "CANCELLED") return "Cancelled";
+  return status ?? "—";
+}
+
+function bookingStatusLabel(status: string | null | undefined) {
+  const s = (status ?? "").toUpperCase();
+  if (s === "HELD") return "Reserved";
+  return status ?? "—";
 }
 
 type FlightSummary = {
@@ -90,7 +104,6 @@ export default async function FlightDetailPage({
 
   return (
     <section className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="text-xs text-slate-600">Flight detail</div>
@@ -101,14 +114,16 @@ export default async function FlightDetailPage({
         </div>
 
         <div className="flex flex-col items-start gap-2 sm:items-end">
-          <Badge tone={statusTone(f.flight_status)}>{f.flight_status ?? "—"}</Badge>
-          <a className="text-sm underline text-slate-700" href="/ops/flights">
-            Back to Flights
-          </a>
+          <Badge tone={statusTone(f.flight_status)}>{flightStatusLabel(f.flight_status)}</Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            <ReactivateFlightButton flightId={f.flight_id} status={f.flight_status} />
+            <a className="text-sm underline text-slate-700" href="/ops/flights">
+              Back to Flights
+            </a>
+          </div>
         </div>
       </div>
 
-      {/* Operational Controls */}
       <Card
         title="Operational Controls"
         subtitle="Quick actions for standard operations. Advanced status control is also available."
@@ -116,8 +131,8 @@ export default async function FlightDetailPage({
       >
         <div className="grid gap-4 md:grid-cols-4">
           <Stat title="Available" value={f.seats_available ?? 0} />
-          <Stat title="Held" value={f.seats_held ?? 0} />
-          <Stat title="Confirmed" value={f.seats_confirmed ?? 0} />
+          <Stat title="Reserved" value={f.seats_held ?? 0} />
+          <Stat title="Ticketed" value={f.seats_confirmed ?? 0} />
           <Stat title="Blocked" value={f.seats_blocked ?? 0} />
         </div>
 
@@ -126,7 +141,7 @@ export default async function FlightDetailPage({
             <div>
               <div className="text-sm font-semibold text-slate-900">Flight lifecycle</div>
               <div className="mt-1 text-sm text-slate-600">
-                Open/Close/Depart/Cancel. Changes are server-side and reflected immediately.
+                Confirm / Ticket / Cancel. Cancelled flights can also be reactivated.
               </div>
             </div>
           </div>
@@ -141,7 +156,6 @@ export default async function FlightDetailPage({
         </div>
       </Card>
 
-      {/* Bookings */}
       <Card title="Bookings on this flight" subtitle="Linked bookings derived from v_booking_operations.">
         {bErr ? (
           <Alert title="Bookings load failed" tone="red">
@@ -174,7 +188,7 @@ export default async function FlightDetailPage({
                     </td>
                     <td className="text-slate-700">{b.booking_type ?? "—"}</td>
                     <td>
-                      <Badge tone={statusTone(b.status)}>{b.status ?? "—"}</Badge>
+                      <Badge tone={statusTone(b.status)}>{bookingStatusLabel(b.status)}</Badge>
                     </td>
                     <td className="text-slate-700">{fmt(b.created_at)}</td>
                     <td className="text-right font-medium">{b.seat_count ?? 0}</td>

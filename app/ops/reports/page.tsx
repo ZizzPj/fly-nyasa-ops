@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { Badge, statusTone } from "@/components/ui/Badge";
+import { PrintPdfButton } from "./PrintPdfButton";
 
 function isoToYmd(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -139,12 +140,13 @@ export default async function OpsReportsPage({
         title="Booking report"
         subtitle="Filter by date range / type / status. Export to CSV."
         right={
-          <div className="flex items-center gap-2">
-            <a className="rounded-lg border bg-white px-3 py-2 text-sm hover:bg-slate-50" href={csvBookingsHref}>
-              Export CSV
-            </a>
-          </div>
-        }
+  <div className="flex items-center gap-2">
+    <a className="rounded-lg border bg-white px-3 py-2 text-sm hover:bg-slate-50" href={csvBookingsHref}>
+      Export CSV
+    </a>
+    <PrintPdfButton />
+  </div>
+}
       >
         <form method="get" className="grid gap-3 rounded-xl border bg-slate-50 p-4 md:grid-cols-5">
           <div className="flex flex-col">

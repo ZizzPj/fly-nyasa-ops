@@ -10,6 +10,8 @@ const NAV: NavItem[] = [
   { href: "/ops/reservations", label: "Reservations" },
   { href: "/ops/bookings", label: "Bookings" },
   { href: "/ops/rules", label: "Rules" },
+  { href: "/ops/agents", label: "Agents" },
+  { href: "/ops/airports", label: "Airports" },
   { href: "/ops/reports", label: "Reports" },
 ];
 
@@ -46,7 +48,7 @@ export function OpsNav() {
 
   return (
     <nav className="flex items-center gap-2">
-      <div className="hidden items-center gap-1 sm:flex">
+      <div className="hidden items-center gap-1 sm:flex sm:flex-wrap">
         {NAV.map((item) => (
           <NavLink
             key={item.href}

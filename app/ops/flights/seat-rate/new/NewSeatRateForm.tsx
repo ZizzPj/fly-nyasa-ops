@@ -94,11 +94,14 @@ export function NewSeatRateForm({
             name="aircraft_id"
             className="mt-1 w-full rounded-lg border bg-white px-3 py-2"
             required
+            defaultValue=""
           >
+            <option value="" disabled>
+              Select aircraft
+            </option>
             {aircraft.map((a) => (
               <option key={a.aircraft_id} value={a.aircraft_id}>
                 {a.model ?? "Aircraft"}
-                {a.registration_code ? ` · ${a.registration_code}` : ""}
                 {` (${a.seat_count} seats)`}
               </option>
             ))}
@@ -138,7 +141,11 @@ export function NewSeatRateForm({
             name="departure_airport_id"
             className="mt-1 w-full rounded-lg border bg-white px-3 py-2"
             required
+            defaultValue=""
           >
+            <option value="" disabled>
+              Select departure airport
+            </option>
             {airports.map((a) => (
               <option key={a.id} value={a.id}>
                 {airportLabel(a)}
@@ -169,7 +176,11 @@ export function NewSeatRateForm({
             name="arrival_airport_id"
             className="mt-1 w-full rounded-lg border bg-white px-3 py-2"
             required
+            defaultValue=""
           >
+            <option value="" disabled>
+              Select arrival airport
+            </option>
             {airports.map((a) => (
               <option key={a.id} value={a.id}>
                 {airportLabel(a)}

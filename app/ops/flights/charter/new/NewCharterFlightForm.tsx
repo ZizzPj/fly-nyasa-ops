@@ -52,7 +52,7 @@ export function NewCharterFlightForm({
             name="flight_number"
             required
             className="mt-1 w-full rounded-lg border px-3 py-2"
-            placeholder="FN201"
+            placeholder="CH201"
           />
         </div>
 
@@ -95,7 +95,11 @@ export function NewCharterFlightForm({
             name="departure_airport_id"
             required
             className="mt-1 w-full rounded-lg border bg-white px-3 py-2"
+            defaultValue=""
           >
+            <option value="" disabled>
+              Select departure airport
+            </option>
             {airports.map((a) => (
               <option key={a.id} value={a.id}>
                 {airportLabel(a)}
@@ -126,7 +130,11 @@ export function NewCharterFlightForm({
             name="arrival_airport_id"
             required
             className="mt-1 w-full rounded-lg border bg-white px-3 py-2"
+            defaultValue=""
           >
+            <option value="" disabled>
+              Select arrival airport
+            </option>
             {airports.map((a) => (
               <option key={a.id} value={a.id}>
                 {airportLabel(a)}

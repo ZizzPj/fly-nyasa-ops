@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { createSeatReservationAction } from "@/app/ops/actions/createSeatReservationAction";
 import { routeLabel } from "@/lib/format/routeLabel";
 
@@ -13,8 +13,21 @@ type FlightRow = {
   seats_available: number | null;
 };
 
+function weekdayLabel(dateStr: string) {
+  if (!dateStr) return "—";
+  const d = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-US", { weekday: "long" });
+}
+
 export function SeatReservationForm({ flights }: { flights: FlightRow[] }) {
   const [pending, startTransition] = useTransition();
+  const [preferredDate, setPreferredDate] = useState("");
+  const [adults, setAdults] = useState(1);
+  const [children, setChildren] = useState(0);
+
+  const totalPassengers = useMemo(() => adults + children, [adults, children]);
+  const preferredWeekday = useMemo(() => weekdayLabel(preferredDate), [preferredDate]);
 
   return (
     <form
@@ -32,6 +45,8 @@ export function SeatReservationForm({ flights }: { flights: FlightRow[] }) {
         });
       }}
     >
+      <div className="text-sm font-semibold text-slate-900">Flight Selection</div>
+
       <div className="grid gap-4 md:grid-cols-3">
         <div>
           <label className="text-sm font-medium">Flight</label>
@@ -77,41 +92,79 @@ export function SeatReservationForm({ flights }: { flights: FlightRow[] }) {
         </div>
       </div>
 
+      <div className="text-sm font-semibold text-slate-900">Booking Details</div>
+
       <div className="grid gap-4 md:grid-cols-3">
-        <div>
-          <label className="text-sm font-medium">PNR</label>
-          <input name="pnr" className="mt-1 w-full rounded-lg border px-3 py-2" />
-        </div>
         <div>
           <label className="text-sm font-medium">Staff</label>
           <input name="staff_name" className="mt-1 w-full rounded-lg border px-3 py-2" />
         </div>
+
         <div>
           <label className="text-sm font-medium">Agent</label>
           <input name="agent_name" className="mt-1 w-full rounded-lg border px-3 py-2" />
         </div>
+
+        <div>
+          <label className="text-sm font-medium">Booked By</label>
+          <input name="booked_by" className="mt-1 w-full rounded-lg border px-3 py-2" />
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <label className="text-sm font-medium">Passenger</label>
+          <label className="text-sm font-medium">Client / Lead Passenger</label>
           <input name="passenger_name" className="mt-1 w-full rounded-lg border px-3 py-2" />
         </div>
-        <div>
-          <label className="text-sm font-medium">Preferred Day</label>
-          <input name="preferred_day" className="mt-1 w-full rounded-lg border px-3 py-2" />
-        </div>
+
         <div>
           <label className="text-sm font-medium">Preferred Departure Date</label>
           <input
             type="date"
             name="preferred_departure_date"
+            value={preferredDate}
+            onChange={(e) => setPreferredDate(e.target.value)}
             className="mt-1 w-full rounded-lg border px-3 py-2"
           />
+          <div className="mt-1 text-xs text-slate-600">Day: {preferredWeekday}</div>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="text-sm font-semibold text-slate-900">Passenger Counts</div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <div>
+          <label className="text-sm font-medium">Adults</label>
+          <select
+            name="no_of_adults"
+            value={String(adults)}
+            onChange={(e) => setAdults(Number(e.target.value))}
+            className="mt-1 w-full rounded-lg border bg-white px-3 py-2"
+          >
+            {Array.from({ length: 10 }).map((_, i) => (
+              <option key={i} value={i}>
+                {i}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium">Children</label>
+          <select
+            name="no_of_children"
+            value={String(children)}
+            onChange={(e) => setChildren(Number(e.target.value))}
+            className="mt-1 w-full rounded-lg border bg-white px-3 py-2"
+          >
+            {Array.from({ length: 10 }).map((_, i) => (
+              <option key={i} value={i}>
+                {i}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div>
           <label className="text-sm font-medium">Return Required</label>
           <select
@@ -123,6 +176,9 @@ export function SeatReservationForm({ flights }: { flights: FlightRow[] }) {
             <option value="true">Yes</option>
           </select>
         </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-1">
         <div>
           <label className="text-sm font-medium">Return Date</label>
           <input
@@ -131,27 +187,58 @@ export function SeatReservationForm({ flights }: { flights: FlightRow[] }) {
             className="mt-1 w-full rounded-lg border px-3 py-2"
           />
         </div>
-        <div>
-          <label className="text-sm font-medium">No. of Adults</label>
-          <input
-            type="number"
-            name="no_of_adults"
-            min={0}
-            defaultValue={1}
-            className="mt-1 w-full rounded-lg border px-3 py-2"
-          />
-        </div>
-        <div>
-          <label className="text-sm font-medium">No. of Children</label>
-          <input
-            type="number"
-            name="no_of_children"
-            min={0}
-            defaultValue={0}
-            className="mt-1 w-full rounded-lg border px-3 py-2"
-          />
-        </div>
       </div>
+
+      <div className="text-sm font-semibold text-slate-900">Passenger Details</div>
+
+      {totalPassengers === 0 ? (
+        <div className="rounded-lg border bg-slate-50 p-4 text-sm text-slate-600">
+          Select at least 1 passenger.
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {Array.from({ length: totalPassengers }).map((_, idx) => {
+            const isChild = idx >= adults;
+            const passengerNo = idx + 1;
+
+            return (
+              <div key={passengerNo} className="rounded-xl border p-4">
+                <div className="mb-3 text-sm font-semibold">
+                  {isChild ? `Child ${passengerNo - adults}` : `Adult ${passengerNo}`}
+                </div>
+
+                <div className="grid gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-slate-700">Full Name</label>
+                    <input
+                      name={`passenger_${passengerNo}_name`}
+                      className="mt-1 w-full rounded-lg border px-3 py-2"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-slate-700">Nationality</label>
+                    <input
+                      name={`passenger_${passengerNo}_nationality`}
+                      className="mt-1 w-full rounded-lg border px-3 py-2"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-slate-700">ID / Passport</label>
+                    <input
+                      name={`passenger_${passengerNo}_document`}
+                      className="mt-1 w-full rounded-lg border px-3 py-2"
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="text-sm font-semibold text-slate-900">Commercials</div>
 
       <div className="grid gap-4 md:grid-cols-4">
         <div>
@@ -197,6 +284,8 @@ export function SeatReservationForm({ flights }: { flights: FlightRow[] }) {
           </select>
         </div>
       </div>
+
+      <div className="text-sm font-semibold text-slate-900">Lodging & Notes</div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <div>

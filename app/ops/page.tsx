@@ -27,11 +27,24 @@ type BookingRow = {
   created_at: string | null;
 };
 
+type RuleRow = {
+  id: string;
+  name: string;
+};
+
 function fmt(iso: string | null | undefined) {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toISOString().replace("T", " ").slice(0, 16) + " UTC";
+}
+
+function flightStatusLabel(status: string | null | undefined) {
+  const s = (status ?? "").toUpperCase();
+  if (s === "OPEN") return "Confirmed";
+  if (s === "DEPARTED") return "Ticketed";
+  if (s === "CANCELLED") return "Cancelled";
+  return status ?? "—";
 }
 
 export default async function OpsPage() {
@@ -49,11 +62,19 @@ export default async function OpsPage() {
     .order("created_at", { ascending: false })
     .limit(10);
 
+  const { data: rules } = await supabase
+    .from("flight_rules")
+    .select("id, name")
+    .eq("is_active", true)
+    .order("name", { ascending: true })
+    .limit(8);
+
   const flightRows = (flights ?? []) as FlightRow[];
   const bookingRows = (bookings ?? []) as BookingRow[];
+  const ruleRows = (rules ?? []) as RuleRow[];
 
   const totalFlights = flightRows.length;
-  const openFlights = flightRows.filter((f) => (f.flight_status ?? "").toUpperCase() === "OPEN").length;
+  const confirmedFlights = flightRows.filter((f) => (f.flight_status ?? "").toUpperCase() === "OPEN").length;
   const totalAvailableSeats = flightRows.reduce((sum, f) => sum + (f.seats_available ?? 0), 0);
   const activeBookings = bookingRows.filter((b) => {
     const s = (b.status ?? "").toUpperCase();
@@ -72,7 +93,7 @@ export default async function OpsPage() {
 
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard title="Total Flights" value={String(totalFlights)} />
-        <StatCard title="Open Flights" value={String(openFlights)} />
+        <StatCard title="Confirmed Flights" value={String(confirmedFlights)} />
         <StatCard title="Available Seats" value={String(totalAvailableSeats)} />
         <StatCard title="Active Bookings" value={String(activeBookings)} />
       </div>
@@ -112,12 +133,12 @@ export default async function OpsPage() {
                         Departure: {fmt(f.departure_time)}
                       </div>
                     </div>
-                    <Badge tone={statusTone(f.flight_status)}>{f.flight_status ?? "—"}</Badge>
+                    <Badge tone={statusTone(f.flight_status)}>{flightStatusLabel(f.flight_status)}</Badge>
                   </div>
 
                   <div className="mt-3 grid grid-cols-4 gap-2 text-xs text-slate-700">
                     <div>Avail: {f.seats_available ?? 0}</div>
-                    <div>Held: {f.seats_held ?? 0}</div>
+                    <div>Reserved: {f.seats_held ?? 0}</div>
                     <div>Ticketed: {f.seats_confirmed ?? 0}</div>
                     <div>Blocked: {f.seats_blocked ?? 0}</div>
                   </div>
@@ -166,22 +187,41 @@ export default async function OpsPage() {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <QuickLink
-          href="/ops/reservations/new/seat"
-          title="New Seat Reservation"
-          subtitle="Reserve passenger seats on an operational flight."
-        />
-        <QuickLink
-          href="/ops/reservations/new/charter"
-          title="New Charter Reservation"
-          subtitle="Reserve the full aircraft and block passenger inventory."
-        />
-        <QuickLink
-          href="/ops/rules"
-          title="Manage Rules"
-          subtitle="Maintain operational flight rules used across the system."
-        />
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card
+          title="Active Rules"
+          subtitle="Operational flight rules currently configured."
+          right={
+            <a
+              href="/ops/rules"
+              className="rounded-lg border bg-white px-3 py-2 text-sm hover:bg-slate-50"
+            >
+              Manage Rules
+            </a>
+          }
+        >
+          {ruleRows.length === 0 ? (
+            <div className="rounded-xl border bg-slate-50 p-6 text-sm text-slate-700">
+              No active rules found.
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {ruleRows.map((r) => (
+                <div key={r.id} className="rounded-xl border bg-white p-4 shadow-sm">
+                  <div className="font-medium">{r.name}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        <Card title="Quick Actions" subtitle="Common operations">
+          <div className="grid gap-3">
+            <QuickLink href="/ops/reservations/new/seat" title="New Seat Reservation" subtitle="Reserve passenger seats on an operational flight." />
+            <QuickLink href="/ops/reservations/new/charter" title="New Charter Reservation" subtitle="Reserve the full aircraft and block passenger inventory." />
+            <QuickLink href="/ops/rules" title="Manage Rules" subtitle="Maintain operational flight rules used across the system." />
+          </div>
+        </Card>
       </div>
     </section>
   );
