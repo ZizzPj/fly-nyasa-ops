@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { createCharterReservationAction } from "@/app/ops/actions/createCharterReservationAction";
+import { createMixedReservationAction } from "@/app/ops/actions/createMixedReservationAction";
 import { routeLabel } from "@/lib/format/routeLabel";
 
 type FlightRow = {
@@ -29,7 +29,7 @@ function weekdayLabel(dateStr: string) {
   return d.toLocaleDateString("en-US", { weekday: "long" });
 }
 
-export function CharterReservationForm({ flights }: { flights: FlightRow[] }) {
+export function MixedReservationForm({ flights }: { flights: FlightRow[] }) {
   const [pending, startTransition] = useTransition();
   const [preferredDate, setPreferredDate] = useState("");
   const [adults, setAdults] = useState(1);
@@ -47,53 +47,38 @@ export function CharterReservationForm({ flights }: { flights: FlightRow[] }) {
 
         startTransition(async () => {
           try {
-            await createCharterReservationAction(form);
+            await createMixedReservationAction(form);
           } catch (err: any) {
-            alert(err?.message ?? "Failed to create charter reservation");
+            alert(err?.message ?? "Failed to create mixed reservation");
           }
         });
       }}
     >
-      <div className="text-sm font-semibold text-slate-900">Flight Selection</div>
-
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <label className="text-sm font-medium">Flight</label>
-          <select
-            name="flight_id"
-            required
-            defaultValue=""
-            className="mt-1 w-full rounded-lg border bg-white px-3 py-2"
-          >
-            <option value="" disabled>
-              Select flight
-            </option>
+          <label className="text-sm font-medium">Seat Flight</label>
+          <select name="seat_flight_id" required defaultValue="" className="mt-1 w-full rounded-lg border bg-white px-3 py-2">
+            <option value="" disabled>Select seat flight</option>
             {flights.map((f) => (
               <option key={f.flight_id} value={f.flight_id}>
-                {(f.flight_number ?? f.flight_id) +
-                  " · " +
-                  routeLabel(f) +
-                  ` · ${fmtTime(f.departure_time)}-${fmtTime(f.arrival_time)}`}
+                {(f.flight_number ?? f.flight_id) + " · " + routeLabel(f) + ` · ${fmtTime(f.departure_time)}-${fmtTime(f.arrival_time)}`}
               </option>
             ))}
           </select>
         </div>
 
         <div>
-          <label className="text-sm font-medium">Hold Duration (minutes)</label>
-          <input
-            type="number"
-            name="hold_minutes"
-            min={1}
-            max={2160}
-            required
-            defaultValue={60}
-            className="mt-1 w-full rounded-lg border px-3 py-2"
-          />
+          <label className="text-sm font-medium">Charter Flight</label>
+          <select name="charter_flight_id" required defaultValue="" className="mt-1 w-full rounded-lg border bg-white px-3 py-2">
+            <option value="" disabled>Select charter flight</option>
+            {flights.map((f) => (
+              <option key={f.flight_id} value={f.flight_id}>
+                {(f.flight_number ?? f.flight_id) + " · " + routeLabel(f) + ` · ${fmtTime(f.departure_time)}-${fmtTime(f.arrival_time)}`}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
-
-      <div className="text-sm font-semibold text-slate-900">Booking Details</div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <input name="staff_name" placeholder="Staff" className="rounded-lg border px-3 py-2" />
@@ -114,10 +99,8 @@ export function CharterReservationForm({ flights }: { flights: FlightRow[] }) {
           <div className="mt-1 text-xs text-slate-600">Day: {preferredWeekday}</div>
         </div>
 
-        <input type="date" name="return_date" className="rounded-lg border px-3 py-2" />
+        <input type="number" name="hold_minutes" defaultValue={60} min={1} max={2160} className="rounded-lg border px-3 py-2" />
       </div>
-
-      <div className="text-sm font-semibold text-slate-900">Passenger Counts</div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <select
@@ -127,9 +110,7 @@ export function CharterReservationForm({ flights }: { flights: FlightRow[] }) {
           className="rounded-lg border bg-white px-3 py-2"
         >
           {Array.from({ length: 10 }).map((_, i) => (
-            <option key={i} value={i}>
-              Adults: {i}
-            </option>
+            <option key={i} value={i}>Adults: {i}</option>
           ))}
         </select>
 
@@ -140,40 +121,20 @@ export function CharterReservationForm({ flights }: { flights: FlightRow[] }) {
           className="rounded-lg border bg-white px-3 py-2"
         >
           {Array.from({ length: 10 }).map((_, i) => (
-            <option key={i} value={i}>
-              Children: {i}
-            </option>
+            <option key={i} value={i}>Children: {i}</option>
           ))}
         </select>
 
-        <select
-          name="return_required"
-          defaultValue="false"
-          className="rounded-lg border bg-white px-3 py-2"
-        >
-          <option value="false">Return Required: No</option>
-          <option value="true">Return Required: Yes</option>
-        </select>
+        <input type="date" name="return_date" className="rounded-lg border px-3 py-2" />
       </div>
 
-      <div className="text-sm font-semibold text-slate-900">Passenger Details</div>
-
-      {totalPassengers === 0 ? (
-        <div className="rounded-lg border bg-slate-50 p-4 text-sm text-slate-600">
-          Select at least 1 passenger.
-        </div>
-      ) : (
+      {totalPassengers > 0 && (
         <div className="grid gap-4 md:grid-cols-2">
           {Array.from({ length: totalPassengers }).map((_, idx) => {
-            const isChild = idx >= adults;
             const passengerNo = idx + 1;
-
             return (
               <div key={passengerNo} className="rounded-xl border p-4">
-                <div className="mb-3 text-sm font-semibold">
-                  {isChild ? `Child ${passengerNo - adults}` : `Adult ${passengerNo}`}
-                </div>
-
+                <div className="mb-3 text-sm font-semibold">Passenger {passengerNo}</div>
                 <div className="grid gap-3">
                   <input name={`passenger_${passengerNo}_name`} placeholder="Full Name" className="rounded-lg border px-3 py-2" />
                   <input name={`passenger_${passengerNo}_phone`} placeholder="Phone Number" className="rounded-lg border px-3 py-2" />
@@ -188,39 +149,11 @@ export function CharterReservationForm({ flights }: { flights: FlightRow[] }) {
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <input type="number" step="0.01" name="total_cost" defaultValue={0} placeholder="Total Cost" className="rounded-lg border px-3 py-2" />
-        <input type="number" step="0.01" name="demurrage" defaultValue={0} placeholder="Demurrage" className="rounded-lg border px-3 py-2" />
-        <input type="number" step="0.01" name="change_date_fee" defaultValue={0} placeholder="Change Date Fee" className="rounded-lg border px-3 py-2" />
-        <input type="number" step="0.01" name="excess_baggage_fee" defaultValue={0} placeholder="Excess Baggage" className="rounded-lg border px-3 py-2" />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-4">
-        <input type="number" step="0.01" name="fuel_surcharge" defaultValue={0} placeholder="Fuel Surcharge" className="rounded-lg border px-3 py-2" />
-        <input type="number" step="0.01" name="credit_card_surcharge" defaultValue={0} placeholder="Credit Card Surcharge" className="rounded-lg border px-3 py-2" />
-        <input type="number" step="0.01" name="departure_taxes" defaultValue={0} placeholder="Departure Taxes" className="rounded-lg border px-3 py-2" />
-        <select name="include_vat" defaultValue="true" className="rounded-lg border bg-white px-3 py-2">
-          <option value="true">Include VAT: Yes</option>
-          <option value="false">Include VAT: No</option>
-        </select>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <input name="from_lodge" placeholder="From Lodge" className="rounded-lg border px-3 py-2" />
-        <input name="to_lodge" placeholder="To Lodge" className="rounded-lg border px-3 py-2" />
-      </div>
-
       <textarea name="notes" rows={3} placeholder="Notes" className="w-full rounded-lg border px-3 py-2" />
 
-      <input type="hidden" name="route_type" value="CHARTER" />
-
       <div className="flex items-center gap-3">
-        <button
-          disabled={pending}
-          type="submit"
-          className="rounded-lg bg-slate-900 px-4 py-2 text-white disabled:opacity-60"
-        >
-          {pending ? "Creating..." : "Create Charter Reservation"}
+        <button disabled={pending} type="submit" className="rounded-lg bg-slate-900 px-4 py-2 text-white disabled:opacity-60">
+          {pending ? "Creating..." : "Create Mixed Reservation"}
         </button>
 
         <a href="/ops/reservations" className="text-sm underline text-slate-700">

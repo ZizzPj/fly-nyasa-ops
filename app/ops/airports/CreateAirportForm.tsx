@@ -8,7 +8,7 @@ export function CreateAirportForm() {
 
   return (
     <form
-      className="grid gap-4 md:grid-cols-4"
+      className="grid gap-4 md:grid-cols-3"
       onSubmit={(e) => {
         e.preventDefault();
         const form = new FormData(e.currentTarget);
@@ -18,27 +18,26 @@ export function CreateAirportForm() {
             await createAirportAction(form);
             e.currentTarget.reset();
           } catch (err: any) {
-            alert(err?.message ?? "Failed to create location");
+            alert(err?.message ?? "Failed to create airport");
           }
         });
       }}
     >
       <div>
-        <label className="text-sm font-medium">Name</label>
-        <input name="name" required className="mt-1 w-full rounded-lg border px-3 py-2" />
+        <label className="text-sm font-medium">Airport Name</label>
+        <input
+          name="name"
+          required
+          className="mt-1 w-full rounded-lg border px-3 py-2"
+        />
       </div>
 
       <div>
-        <label className="text-sm font-medium">ICAO</label>
-        <input name="icao" className="mt-1 w-full rounded-lg border px-3 py-2" />
-      </div>
-
-      <div>
-        <label className="text-sm font-medium">Type</label>
-        <select name="airport_type" defaultValue="AIRPORT" className="mt-1 w-full rounded-lg border bg-white px-3 py-2">
-          <option value="AIRPORT">Airport</option>
-          <option value="AIRSTRIP">Airstrip</option>
-        </select>
+        <label className="text-sm font-medium">ICAO Code</label>
+        <input
+          name="icao"
+          className="mt-1 w-full rounded-lg border px-3 py-2"
+        />
       </div>
 
       <div className="flex items-end">
@@ -47,7 +46,7 @@ export function CreateAirportForm() {
           type="submit"
           className="rounded-lg bg-slate-900 px-4 py-2 text-white disabled:opacity-60"
         >
-          {pending ? "Saving..." : "Add Location"}
+          {pending ? "Saving..." : "Add Airport"}
         </button>
       </div>
     </form>

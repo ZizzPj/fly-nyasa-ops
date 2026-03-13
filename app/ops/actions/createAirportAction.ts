@@ -9,20 +9,20 @@ export async function createAirportAction(formData: FormData) {
 
   const name = String(formData.get("name") ?? "").trim();
   const icao = String(formData.get("icao") ?? "").trim() || null;
-  const airportType = String(formData.get("airport_type") ?? "AIRPORT").trim().toUpperCase();
 
-  if (!name) throw new Error("Name is required");
+  if (!name) throw new Error("Airport name is required");
 
   const supabase = createSupabaseAdminClient();
 
   const { error } = await supabase.from("airports").insert({
     name,
     icao,
-    airport_type: airportType,
     is_active: true,
   });
 
   if (error) throw new Error(error.message);
 
   revalidatePath("/ops/airports");
+  revalidatePath("/ops/flights/seat-rate/new");
+  revalidatePath("/ops/flights/charter/new");
 }

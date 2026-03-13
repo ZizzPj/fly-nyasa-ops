@@ -1,16 +1,11 @@
+import Link from "next/link";
 import { requireOpsUser } from "@/lib/auth/guard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { Badge, statusTone } from "@/components/ui/Badge";
 import { PrintPdfButton } from "./PrintPdfButton";
-
-function isoToYmd(iso: string | null | undefined) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toISOString().slice(0, 10);
-}
+import { PageHeader } from "@/components/ui/PageHeader";
 
 function isoToUtc(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -44,11 +39,22 @@ type FlightRow = {
   seats_blocked: number | null;
 };
 
+type HoldRow = {
+  id: string;
+  flight_id: string;
+  held_until: string | null;
+  booking_id: string | null;
+};
+
 function clampInt(v: string | null, fallback: number, min: number, max: number) {
   const n = Number(v);
   if (!Number.isFinite(n)) return fallback;
   const i = Math.floor(n);
   return Math.max(min, Math.min(max, i));
+}
+
+function filterInputClass() {
+  return "mt-1 rounded-2xl border border-[color:var(--border)] bg-white/80 px-3 py-2 text-sm";
 }
 
 export default async function OpsReportsPage({
@@ -70,7 +76,6 @@ export default async function OpsReportsPage({
   const fromIso = from ? new Date(from + "T00:00:00.000Z").toISOString() : null;
   const toIso = to ? new Date(to + "T23:59:59.999Z").toISOString() : null;
 
-  // --- BOOKINGS REPORT (from v_booking_operations) ---
   let bookingsQ = supabase
     .from("v_booking_operations")
     .select("*")
@@ -84,16 +89,15 @@ export default async function OpsReportsPage({
 
   const { data: bookings, error: bErr } = await bookingsQ;
 
-  // --- FLIGHTS SNAPSHOT (inventory summary) ---
   const { data: flights, error: fErr } = await supabase
     .from("v_flight_inventory_summary")
     .select("*")
     .order("departure_time", { ascending: true })
     .limit(500);
 
-  // --- HOLDS HEALTH (seat_inventory HELD + charter_inventory OPTIONED) ---
-  // Look-ahead window: default 6 hours (configurable)
   const lookaheadMins = clampInt(typeof sp.lookahead === "string" ? sp.lookahead : null, 360, 30, 2160);
+  // Server-rendered report window based on current request time.
+  // eslint-disable-next-line react-hooks/purity
   const cutoffIso = new Date(Date.now() + lookaheadMins * 60_000).toISOString();
 
   const { data: seatHolds, error: shErr } = await supabase
@@ -128,40 +132,38 @@ export default async function OpsReportsPage({
 
   return (
     <section className="space-y-6">
-      <div>
-        <div className="text-xs text-slate-600">Ops</div>
-        <h1 className="mt-1 text-2xl font-semibold">Reports</h1>
-        <div className="mt-1 text-sm text-slate-700">
-          Operational exports for Ops review. CSV downloads are server-enforced.
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Ops"
+        title="Reports"
+        subtitle="Operational exports and hold-health controls for day-of-departure review. CSV downloads remain server-enforced."
+      />
 
       <Card
         title="Booking report"
-        subtitle="Filter by date range / type / status. Export to CSV."
+        subtitle="Filter by date range, type, and status. Export to CSV."
         right={
-  <div className="flex items-center gap-2">
-    <a className="rounded-lg border bg-white px-3 py-2 text-sm hover:bg-slate-50" href={csvBookingsHref}>
-      Export CSV
-    </a>
-    <PrintPdfButton />
-  </div>
-}
+          <div className="flex items-center gap-2">
+            <a className="button-secondary rounded-full px-4 py-2 text-sm font-semibold" href={csvBookingsHref}>
+              Export CSV
+            </a>
+            <PrintPdfButton />
+          </div>
+        }
       >
-        <form method="get" className="grid gap-3 rounded-xl border bg-slate-50 p-4 md:grid-cols-5">
+        <form method="get" className="grid gap-3 rounded-[24px] border border-[color:var(--border)] bg-[color:var(--surface-muted)] p-4 md:grid-cols-5">
           <div className="flex flex-col">
-            <label className="text-xs font-medium text-slate-700">From</label>
-            <input name="from" type="date" defaultValue={from} className="mt-1 rounded-lg border bg-white px-3 py-2 text-sm" />
+            <label className="text-xs font-medium text-[color:var(--ink-muted)]">From</label>
+            <input name="from" type="date" defaultValue={from} className={filterInputClass()} />
           </div>
 
           <div className="flex flex-col">
-            <label className="text-xs font-medium text-slate-700">To</label>
-            <input name="to" type="date" defaultValue={to} className="mt-1 rounded-lg border bg-white px-3 py-2 text-sm" />
+            <label className="text-xs font-medium text-[color:var(--ink-muted)]">To</label>
+            <input name="to" type="date" defaultValue={to} className={filterInputClass()} />
           </div>
 
           <div className="flex flex-col">
-            <label className="text-xs font-medium text-slate-700">Status</label>
-            <select name="status" defaultValue={status} className="mt-1 rounded-lg border bg-white px-3 py-2 text-sm">
+            <label className="text-xs font-medium text-[color:var(--ink-muted)]">Status</label>
+            <select name="status" defaultValue={status} className={filterInputClass()}>
               <option value="">All</option>
               <option value="DRAFT">DRAFT</option>
               <option value="RESERVED">RESERVED</option>
@@ -171,8 +173,8 @@ export default async function OpsReportsPage({
           </div>
 
           <div className="flex flex-col">
-            <label className="text-xs font-medium text-slate-700">Type</label>
-            <select name="type" defaultValue={type} className="mt-1 rounded-lg border bg-white px-3 py-2 text-sm">
+            <label className="text-xs font-medium text-[color:var(--ink-muted)]">Type</label>
+            <select name="type" defaultValue={type} className={filterInputClass()}>
               <option value="">All</option>
               <option value="SEAT">SEAT</option>
               <option value="CHARTER">CHARTER</option>
@@ -180,22 +182,22 @@ export default async function OpsReportsPage({
           </div>
 
           <div className="flex flex-col">
-            <label className="text-xs font-medium text-slate-700">Limit</label>
+            <label className="text-xs font-medium text-[color:var(--ink-muted)]">Limit</label>
             <input
               name="limit"
               type="number"
               min={50}
               max={2000}
               defaultValue={String(limit)}
-              className="mt-1 rounded-lg border bg-white px-3 py-2 text-sm"
+              className={filterInputClass()}
             />
           </div>
 
           <div className="md:col-span-5 flex items-center gap-2">
-            <button className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white">
+            <button className="button-primary rounded-full px-4 py-2 text-sm font-semibold">
               Apply filters
             </button>
-            <a className="text-sm underline text-slate-700" href="/ops/reports">
+            <a className="text-sm font-medium underline decoration-[color:var(--brand)] underline-offset-4 text-[color:var(--ink-muted)]" href="/ops/reports">
               Reset
             </a>
           </div>
@@ -206,11 +208,11 @@ export default async function OpsReportsPage({
             {bErr.message}
           </Alert>
         ) : bRows.length === 0 ? (
-          <div className="mt-4 rounded-xl border bg-white p-6 text-sm text-slate-700">No bookings found.</div>
+          <div className="mt-4 rounded-[22px] border border-[color:var(--border)] bg-white/70 p-6 text-sm text-[color:var(--ink-muted)]">No bookings found.</div>
         ) : (
-          <div className="mt-4 overflow-x-auto rounded-xl border bg-white">
+          <div className="dashboard-table mt-4 overflow-x-auto rounded-[24px]">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left">
+              <thead className="text-left text-[color:var(--ink-muted)]">
                 <tr className="[&>th]:px-4 [&>th]:py-3">
                   <th>Booking</th>
                   <th>Status</th>
@@ -224,11 +226,11 @@ export default async function OpsReportsPage({
               </thead>
               <tbody className="[&>tr>td]:px-4 [&>tr>td]:py-3">
                 {bRows.map((b) => (
-                  <tr key={b.booking_id} className="border-t hover:bg-slate-50">
+                  <tr key={b.booking_id}>
                     <td className="font-semibold">
-                      <a className="underline" href={`/ops/bookings/${b.booking_id}`}>
+                      <Link className="underline decoration-[color:var(--brand)] underline-offset-4" href={`/ops/bookings/${b.booking_id}`}>
                         {b.booking_id}
-                      </a>
+                      </Link>
                     </td>
                     <td>
                       <Badge tone={statusTone(b.status)}>{b.status ?? "—"}</Badge>
@@ -236,13 +238,13 @@ export default async function OpsReportsPage({
                     <td>
                       <Badge tone={statusTone(b.booking_type)}>{b.booking_type ?? "—"}</Badge>
                     </td>
-                    <td className="text-slate-700">
-                      <a className="underline" href={`/ops/flights/${b.flight_id}`}>
+                    <td className="text-[color:var(--ink)]">
+                      <Link className="underline decoration-[color:var(--brand)] underline-offset-4" href={`/ops/flights/${b.flight_id}`}>
                         {b.flight_number ?? b.flight_id}
-                      </a>
+                      </Link>
                     </td>
-                    <td className="text-slate-700">{isoToUtc(b.departure_time)}</td>
-                    <td className="text-slate-700">{isoToUtc(b.created_at)}</td>
+                    <td className="text-[color:var(--ink)]">{isoToUtc(b.departure_time)}</td>
+                    <td className="text-[color:var(--ink)]">{isoToUtc(b.created_at)}</td>
                     <td className="text-right font-medium">{b.seat_count ?? 0}</td>
                     <td className="text-right font-medium">{b.charter_count ?? 0}</td>
                   </tr>
@@ -255,9 +257,9 @@ export default async function OpsReportsPage({
 
       <Card
         title="Flights snapshot"
-        subtitle="Inventory summary export (authoritative)."
+        subtitle="Inventory summary export."
         right={
-          <a className="rounded-lg border bg-white px-3 py-2 text-sm hover:bg-slate-50" href={csvFlightsHref}>
+          <a className="button-secondary rounded-full px-4 py-2 text-sm font-semibold" href={csvFlightsHref}>
             Export CSV
           </a>
         }
@@ -267,11 +269,11 @@ export default async function OpsReportsPage({
             {fErr.message}
           </Alert>
         ) : fRows.length === 0 ? (
-          <div className="rounded-xl border bg-white p-6 text-sm text-slate-700">No flights found.</div>
+          <div className="rounded-[22px] border border-[color:var(--border)] bg-white/70 p-6 text-sm text-[color:var(--ink-muted)]">No flights found.</div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border bg-white">
+          <div className="dashboard-table overflow-x-auto rounded-[24px]">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left">
+              <thead className="text-left text-[color:var(--ink-muted)]">
                 <tr className="[&>th]:px-4 [&>th]:py-3">
                   <th>Flight</th>
                   <th>Status</th>
@@ -285,17 +287,17 @@ export default async function OpsReportsPage({
               </thead>
               <tbody className="[&>tr>td]:px-4 [&>tr>td]:py-3">
                 {fRows.map((r) => (
-                  <tr key={r.flight_id} className="border-t hover:bg-slate-50">
+                  <tr key={r.flight_id}>
                     <td className="font-semibold">
-                      <a className="underline" href={`/ops/flights/${r.flight_id}`}>
+                      <Link className="underline decoration-[color:var(--brand)] underline-offset-4" href={`/ops/flights/${r.flight_id}`}>
                         {r.flight_number ?? r.flight_id}
-                      </a>
+                      </Link>
                     </td>
                     <td>
                       <Badge tone={statusTone(r.flight_status)}>{r.flight_status ?? "—"}</Badge>
                     </td>
-                    <td className="text-slate-700">{isoToUtc(r.departure_time)}</td>
-                    <td className="text-slate-700">{isoToUtc(r.arrival_time)}</td>
+                    <td className="text-[color:var(--ink)]">{isoToUtc(r.departure_time)}</td>
+                    <td className="text-[color:var(--ink)]">{isoToUtc(r.arrival_time)}</td>
                     <td className="text-right font-medium">{r.seats_available ?? 0}</td>
                     <td className="text-right font-medium">{r.seats_held ?? 0}</td>
                     <td className="text-right font-medium">{r.seats_confirmed ?? 0}</td>
@@ -310,22 +312,22 @@ export default async function OpsReportsPage({
 
       <Card
         title="Holds health"
-        subtitle={`Seat holds expiring within ${lookaheadMins} minutes + charter optioned inventory.`}
-        right={<a className="rounded-lg border bg-white px-3 py-2 text-sm hover:bg-slate-50" href={csvHoldsHref}>Export CSV</a>}
+        subtitle={`Seat holds expiring within ${lookaheadMins} minutes and charter optioned inventory.`}
+        right={<a className="button-secondary rounded-full px-4 py-2 text-sm font-semibold" href={csvHoldsHref}>Export CSV</a>}
       >
-        <form method="get" className="flex flex-wrap items-end gap-3 rounded-xl border bg-slate-50 p-4">
+        <form method="get" className="flex flex-wrap items-end gap-3 rounded-[24px] border border-[color:var(--border)] bg-[color:var(--surface-muted)] p-4">
           <div className="flex flex-col">
-            <label className="text-xs font-medium text-slate-700">Lookahead (mins)</label>
+            <label className="text-xs font-medium text-[color:var(--ink-muted)]">Lookahead (mins)</label>
             <input
               name="lookahead"
               type="number"
               min={30}
               max={2160}
               defaultValue={String(lookaheadMins)}
-              className="mt-1 rounded-lg border bg-white px-3 py-2 text-sm"
+              className={filterInputClass()}
             />
           </div>
-          <button className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white">
+          <button className="button-primary rounded-full px-4 py-2 text-sm font-semibold">
             Apply
           </button>
         </form>
@@ -336,16 +338,16 @@ export default async function OpsReportsPage({
           </Alert>
         ) : (
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <div className="rounded-xl border bg-white p-4">
+            <div className="rounded-[24px] border border-[color:var(--border)] bg-white/72 p-4">
               <div className="text-sm font-semibold">Seat holds expiring soon</div>
-              <div className="mt-1 text-xs text-slate-600">Cutoff: {isoToUtc(cutoffIso)}</div>
+              <div className="mt-1 text-xs text-[color:var(--ink-muted)]">Cutoff: {isoToUtc(cutoffIso)}</div>
 
               {(seatHolds ?? []).length === 0 ? (
-                <div className="mt-3 text-sm text-slate-700">No expiring seat holds.</div>
+                <div className="mt-3 text-sm text-[color:var(--ink-muted)]">No expiring seat holds.</div>
               ) : (
-                <div className="mt-3 overflow-x-auto rounded-xl border">
+                <div className="dashboard-table mt-3 overflow-x-auto rounded-[20px]">
                   <table className="w-full text-sm">
-                    <thead className="bg-slate-50 text-left">
+                    <thead className="text-left text-[color:var(--ink-muted)]">
                       <tr className="[&>th]:px-3 [&>th]:py-2">
                         <th>Booking</th>
                         <th>Flight</th>
@@ -353,17 +355,17 @@ export default async function OpsReportsPage({
                       </tr>
                     </thead>
                     <tbody className="[&>tr>td]:px-3 [&>tr>td]:py-2">
-                      {(seatHolds ?? []).map((h: any) => (
-                        <tr key={h.id} className="border-t">
+                      {(seatHolds ?? []).map((h: HoldRow) => (
+                        <tr key={h.id}>
                           <td className="font-mono text-xs">
                             {h.booking_id ? (
-                              <a className="underline" href={`/ops/bookings/${h.booking_id}`}>{h.booking_id}</a>
+                              <Link className="underline decoration-[color:var(--brand)] underline-offset-4" href={`/ops/bookings/${h.booking_id}`}>{h.booking_id}</Link>
                             ) : "—"}
                           </td>
                           <td className="font-mono text-xs">
-                            <a className="underline" href={`/ops/flights/${h.flight_id}`}>{h.flight_id}</a>
+                            <Link className="underline decoration-[color:var(--brand)] underline-offset-4" href={`/ops/flights/${h.flight_id}`}>{h.flight_id}</Link>
                           </td>
-                          <td className="text-slate-700">{isoToUtc(h.held_until)}</td>
+                          <td className="text-[color:var(--ink)]">{isoToUtc(h.held_until)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -372,14 +374,14 @@ export default async function OpsReportsPage({
               )}
             </div>
 
-            <div className="rounded-xl border bg-white p-4">
+            <div className="rounded-[24px] border border-[color:var(--border)] bg-white/72 p-4">
               <div className="text-sm font-semibold">Charter holds (OPTIONED)</div>
               {(charterHolds ?? []).length === 0 ? (
-                <div className="mt-3 text-sm text-slate-700">No charter holds.</div>
+                <div className="mt-3 text-sm text-[color:var(--ink-muted)]">No charter holds.</div>
               ) : (
-                <div className="mt-3 overflow-x-auto rounded-xl border">
+                <div className="dashboard-table mt-3 overflow-x-auto rounded-[20px]">
                   <table className="w-full text-sm">
-                    <thead className="bg-slate-50 text-left">
+                    <thead className="text-left text-[color:var(--ink-muted)]">
                       <tr className="[&>th]:px-3 [&>th]:py-2">
                         <th>Booking</th>
                         <th>Flight</th>
@@ -387,17 +389,17 @@ export default async function OpsReportsPage({
                       </tr>
                     </thead>
                     <tbody className="[&>tr>td]:px-3 [&>tr>td]:py-2">
-                      {(charterHolds ?? []).map((h: any) => (
-                        <tr key={h.id} className="border-t">
+                      {(charterHolds ?? []).map((h: HoldRow) => (
+                        <tr key={h.id}>
                           <td className="font-mono text-xs">
                             {h.booking_id ? (
-                              <a className="underline" href={`/ops/bookings/${h.booking_id}`}>{h.booking_id}</a>
+                              <Link className="underline decoration-[color:var(--brand)] underline-offset-4" href={`/ops/bookings/${h.booking_id}`}>{h.booking_id}</Link>
                             ) : "—"}
                           </td>
                           <td className="font-mono text-xs">
-                            <a className="underline" href={`/ops/flights/${h.flight_id}`}>{h.flight_id}</a>
+                            <Link className="underline decoration-[color:var(--brand)] underline-offset-4" href={`/ops/flights/${h.flight_id}`}>{h.flight_id}</Link>
                           </td>
-                          <td className="text-slate-700">{isoToUtc(h.held_until)}</td>
+                          <td className="text-[color:var(--ink)]">{isoToUtc(h.held_until)}</td>
                         </tr>
                       ))}
                     </tbody>

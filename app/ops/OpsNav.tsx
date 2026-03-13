@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 type NavItem = { href: string; label: string };
@@ -30,15 +31,17 @@ function NavLink({
   active: boolean;
 }) {
   return (
-    <a
+    <Link
       href={href}
-      className={`rounded-md px-3 py-2 text-sm font-medium transition ${
-        active ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-100"
+      className={`rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+        active
+          ? "bg-[color:var(--brand)] text-white shadow-[0_10px_24px_rgba(10,59,68,0.18)]"
+          : "text-[color:var(--ink-muted)] hover:bg-white/70 hover:text-[color:var(--ink)]"
       }`}
       aria-current={active ? "page" : undefined}
     >
       {label}
-    </a>
+    </Link>
   );
 }
 
@@ -47,8 +50,8 @@ export function OpsNav() {
   const p = pathname ?? "/ops";
 
   return (
-    <nav className="flex items-center gap-2">
-      <div className="hidden items-center gap-1 sm:flex sm:flex-wrap">
+    <nav className="flex flex-col gap-3 lg:items-end">
+      <div className="hidden flex-wrap items-center gap-2 xl:flex">
         {NAV.map((item) => (
           <NavLink
             key={item.href}
@@ -59,12 +62,12 @@ export function OpsNav() {
         ))}
       </div>
 
-      <a
+      <Link
         href="/ops/reservations/new"
-        className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+        className="button-primary rounded-full px-4 py-2.5 text-sm font-semibold"
       >
-        + New Reservation
-      </a>
+        New Reservation
+      </Link>
     </nav>
   );
 }

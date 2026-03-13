@@ -2,6 +2,39 @@
 
 :root {
   color-scheme: light;
+
+  /* Base Backgrounds */
+  --bg: #f5f8fb;
+  --bg-accent: #e6f1fb;
+
+  /* Surfaces */
+  --surface: rgba(255, 255, 255, 0.85);
+  --surface-strong: rgba(255, 255, 255, 0.96);
+  --surface-muted: rgba(240, 246, 252, 0.75);
+
+  /* Borders */
+  --border: rgba(0, 48, 87, 0.08);
+  --border-strong: rgba(0, 48, 87, 0.18);
+
+  /* Typography */
+  --ink: #0c2238;
+  --ink-muted: #5a6b7c;
+
+  /* Fly Nyasa Brand Colors */
+  --brand: #003a70;
+  --brand-strong: #002851;
+
+  /* Airline Accent Blue */
+  --accent: #2a8fd8;
+
+  /* Status Colors */
+  --success: #1e8c5a;
+  --warn: #d08b1d;
+  --danger: #c94c4c;
+
+  /* Shadows */
+  --shadow-lg: 0 28px 80px rgba(0, 40, 81, 0.14);
+  --shadow-md: 0 18px 42px rgba(0, 40, 81, 0.08);
 }
 
 html,
@@ -9,6 +42,103 @@ body {
   height: 100%;
 }
 
+html {
+  background:
+    radial-gradient(circle at top left, rgba(42, 143, 216, 0.15), transparent 28%),
+    radial-gradient(circle at top right, rgba(0, 58, 112, 0.12), transparent 24%),
+    linear-gradient(180deg, #ffffff 0%, #f3f7fb 52%, #edf4fa 100%);
+}
+
 body {
   margin: 0;
+  color: var(--ink);
+  background: transparent;
+  font-family: "Aptos", "Segoe UI Variable Display", "Segoe UI", sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgba(0, 58, 112, 0.18);
+}
+
+/* Panels */
+
+.dashboard-panel {
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--surface-strong) 0%, var(--surface) 100%);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(14px);
+}
+
+.dashboard-panel-strong {
+  border: 1px solid rgba(0, 58, 112, 0.18);
+  background: linear-gradient(
+    135deg,
+    rgba(0, 58, 112, 0.94) 0%,
+    rgba(0, 40, 81, 0.97) 100%
+  );
+  box-shadow: var(--shadow-lg);
+  color: #f8fbfc;
+}
+
+/* Tables */
+
+.dashboard-table {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.dashboard-table thead {
+  background: rgba(0, 58, 112, 0.05);
+}
+
+.dashboard-table tbody tr {
+  border-top: 1px solid rgba(0, 58, 112, 0.07);
+}
+
+.dashboard-table tbody tr:hover {
+  background: rgba(42, 143, 216, 0.06);
+}
+
+/* Buttons */
+
+.button-primary {
+  border: 1px solid rgba(0, 40, 81, 0.75);
+  background: linear-gradient(
+    135deg,
+    var(--brand) 0%,
+    var(--brand-strong) 100%
+  );
+  color: white;
+  box-shadow: 0 12px 24px rgba(0, 40, 81, 0.22);
+}
+
+.button-primary:hover {
+  background: linear-gradient(
+    135deg,
+    #004a8c 0%,
+    #002e5b 100%
+  );
+}
+
+.button-secondary {
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--ink);
+}
+
+.button-secondary:hover {
+  background: rgba(255, 255, 255, 1);
+}
+
+/* Typography */
+
+.eyebrow {
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.metric-value {
+  font-feature-settings: "tnum" 1, "ss01" 1;
 }

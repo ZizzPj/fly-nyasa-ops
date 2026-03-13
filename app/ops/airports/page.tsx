@@ -8,8 +8,7 @@ type AirportRow = {
   id: string;
   name: string;
   icao: string | null;
-  airport_type: string | null;
-  is_active: boolean;
+  is_active: boolean | null;
 };
 
 export default async function AirportsPage() {
@@ -18,7 +17,7 @@ export default async function AirportsPage() {
 
   const { data, error } = await supabase
     .from("airports")
-    .select("id, name, icao, airport_type, is_active")
+    .select("id, name, icao, is_active")
     .order("name", { ascending: true });
 
   if (error) {
@@ -37,20 +36,20 @@ export default async function AirportsPage() {
     <section className="space-y-6">
       <div>
         <div className="text-xs text-slate-600">Ops</div>
-        <h1 className="mt-1 text-2xl font-semibold">Airports & Airstrips</h1>
+        <h1 className="mt-1 text-2xl font-semibold">Airports</h1>
         <div className="mt-1 text-sm text-slate-700">
-          Add and manage airports and airstrips used in operations.
+          Add and manage airports used in operations.
         </div>
       </div>
 
-      <Card title="Add Airport / Airstrip" subtitle="Create a new location.">
+      <Card title="Add Airport" subtitle="Create a new airport location.">
         <CreateAirportForm />
       </Card>
 
-      <Card title="Locations" subtitle="All configured airports and airstrips.">
+      <Card title="Airports" subtitle="All configured airport locations.">
         {rows.length === 0 ? (
           <div className="rounded-xl border bg-slate-50 p-6 text-sm text-slate-700">
-            No locations found.
+            No airports found.
           </div>
         ) : (
           <div className="overflow-x-auto rounded-xl border bg-white">
@@ -59,7 +58,6 @@ export default async function AirportsPage() {
                 <tr className="[&>th]:px-4 [&>th]:py-3">
                   <th>Name</th>
                   <th>ICAO</th>
-                  <th>Type</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -68,8 +66,7 @@ export default async function AirportsPage() {
                   <tr key={r.id} className="border-t hover:bg-slate-50">
                     <td className="font-semibold">{r.name}</td>
                     <td>{r.icao ?? "—"}</td>
-                    <td>{r.airport_type ?? "AIRPORT"}</td>
-                    <td>{r.is_active ? "Active" : "Inactive"}</td>
+                    <td>{r.is_active === false ? "Inactive" : "Active"}</td>
                   </tr>
                 ))}
               </tbody>

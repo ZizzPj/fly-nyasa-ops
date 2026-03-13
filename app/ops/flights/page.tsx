@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { requireOpsUser } from "@/lib/auth/guard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { Badge, statusTone } from "@/components/ui/Badge";
 import { FlightsSubnav } from "./FlightsSubnav";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 type FlightRow = {
   flight_id: string;
@@ -45,23 +47,18 @@ export default async function OpsFlightsPage() {
   if (error) {
     return (
       <section className="space-y-6">
-        <div>
-          <div className="text-xs text-slate-600">Flights</div>
-          <h1 className="mt-1 text-2xl font-semibold">Flight Schedules</h1>
-        </div>
-
+        <PageHeader eyebrow="Flights" title="Flight schedules" subtitle="Operational flight inventory and schedule control." />
         <FlightsSubnav />
-
         <Card
-          title="Flight Schedules"
+          title="Flight schedules"
           subtitle="Operational flight inventory view."
           right={
-            <a
-              className="rounded-lg border bg-white px-3 py-2 text-sm hover:bg-slate-50"
+            <Link
+              className="button-primary rounded-full px-4 py-2 text-sm font-semibold"
               href="/ops/flights/new"
             >
-              + Create Operational Flight
-            </a>
+              Create operational flight
+            </Link>
           }
         >
           <Alert title="Flights load failed" tone="red">
@@ -76,28 +73,27 @@ export default async function OpsFlightsPage() {
 
   return (
     <section className="space-y-6">
-      <div>
-        <div className="text-xs text-slate-600">Flights</div>
-        <h1 className="mt-1 text-2xl font-semibold">Flight Schedules</h1>
-        <div className="mt-1 text-sm text-slate-700">
-          Real operational flight instances with live inventory and route visibility.
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Flights"
+        title="Flight schedules"
+        subtitle="Operational flight instances with live inventory, route visibility, and fast access to flight-level controls."
+        actions={<Link className="button-primary rounded-full px-4 py-2 text-sm font-semibold" href="/ops/flights/new">Create flight</Link>}
+      />
 
       <FlightsSubnav />
 
       <Card
-        title="Flight Schedules"
+        title="Flight schedules"
         subtitle="Operational flights generated for reservations and inventory control."
       >
         {rows.length === 0 ? (
-          <div className="rounded-xl border bg-slate-50 p-6 text-sm text-slate-700">
+          <div className="rounded-[22px] border border-[color:var(--border)] bg-[color:var(--surface-muted)] p-6 text-sm text-[color:var(--ink-muted)]">
             No flight schedules found.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border bg-white">
+          <div className="dashboard-table overflow-x-auto rounded-[24px]">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left">
+              <thead className="text-left text-[color:var(--ink-muted)]">
                 <tr className="[&>th]:px-4 [&>th]:py-3">
                   <th>Flight</th>
                   <th>Route</th>
@@ -113,11 +109,11 @@ export default async function OpsFlightsPage() {
               </thead>
               <tbody className="[&>tr>td]:px-4 [&>tr>td]:py-3">
                 {rows.map((r) => (
-                  <tr key={r.flight_id} className="border-t hover:bg-slate-50">
+                  <tr key={r.flight_id}>
                     <td className="font-semibold">
-                      <a className="underline" href={`/ops/flights/${r.flight_id}`}>
+                      <Link className="underline decoration-[color:var(--brand)] underline-offset-4" href={`/ops/flights/${r.flight_id}`}>
                         {r.flight_number ?? r.flight_id}
-                      </a>
+                      </Link>
                     </td>
                     <td>{routeLabel(r)}</td>
                     <td>
@@ -132,12 +128,12 @@ export default async function OpsFlightsPage() {
                     <td className="text-right">{r.seats_confirmed ?? 0}</td>
                     <td className="text-right">{r.seats_blocked ?? 0}</td>
                     <td>
-                      <a
+                      <Link
                         href={`/ops/flights/${r.flight_id}`}
-                        className="rounded-lg border bg-white px-3 py-1.5 text-xs hover:bg-slate-50"
+                        className="button-secondary rounded-full px-3 py-1.5 text-xs font-semibold"
                       >
                         View
-                      </a>
+                      </Link>
                     </td>
                   </tr>
                 ))}

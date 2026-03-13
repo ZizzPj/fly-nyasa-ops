@@ -7,18 +7,18 @@ export function Badge({
 }) {
   const cls =
     tone === "green"
-      ? "bg-green-50 text-green-700 ring-green-600/20"
+      ? "bg-emerald-50 text-emerald-800 ring-emerald-700/15"
       : tone === "red"
-      ? "bg-red-50 text-red-700 ring-red-600/20"
+      ? "bg-rose-50 text-rose-800 ring-rose-700/15"
       : tone === "amber"
-      ? "bg-amber-50 text-amber-700 ring-amber-600/20"
+      ? "bg-amber-50 text-amber-800 ring-amber-700/15"
       : tone === "blue"
-      ? "bg-blue-50 text-blue-700 ring-blue-600/20"
-      : "bg-slate-50 text-slate-700 ring-slate-600/20";
+      ? "bg-sky-50 text-sky-800 ring-sky-700/15"
+      : "bg-slate-100 text-slate-700 ring-slate-700/10";
 
   return (
     <span
-      className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${cls}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ring-1 ring-inset ${cls}`}
     >
       {children}
     </span>

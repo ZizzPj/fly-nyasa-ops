@@ -10,8 +10,17 @@ type FlightRow = {
   departure_airport_name: string;
   via_airport_name: string | null;
   arrival_airport_name: string;
+  departure_time: string | null;
+  arrival_time: string | null;
   seats_available: number | null;
 };
+
+function fmtTime(iso: string | null | undefined) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toISOString().slice(11, 16);
+}
 
 function weekdayLabel(dateStr: string) {
   if (!dateStr) return "—";
@@ -47,35 +56,28 @@ export function SeatReservationForm({ flights }: { flights: FlightRow[] }) {
     >
       <div className="text-sm font-semibold text-slate-900">Flight Selection</div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <div>
           <label className="text-sm font-medium">Flight</label>
           <select
             name="flight_id"
             required
+            defaultValue=""
             className="mt-1 w-full rounded-lg border bg-white px-3 py-2"
           >
+            <option value="" disabled>
+              Select flight
+            </option>
             {flights.map((f) => (
               <option key={f.flight_id} value={f.flight_id}>
                 {(f.flight_number ?? f.flight_id) +
                   " · " +
                   routeLabel(f) +
+                  ` · ${fmtTime(f.departure_time)}-${fmtTime(f.arrival_time)}` +
                   ` · Available: ${f.seats_available ?? 0}`}
               </option>
             ))}
           </select>
-        </div>
-
-        <div>
-          <label className="text-sm font-medium">Seat Count</label>
-          <input
-            type="number"
-            name="seat_count"
-            min={1}
-            required
-            defaultValue={1}
-            className="mt-1 w-full rounded-lg border px-3 py-2"
-          />
         </div>
 
         <div>
@@ -106,17 +108,12 @@ export function SeatReservationForm({ flights }: { flights: FlightRow[] }) {
         </div>
 
         <div>
-          <label className="text-sm font-medium">Booked By</label>
-          <input name="booked_by" className="mt-1 w-full rounded-lg border px-3 py-2" />
+          <label className="text-sm font-medium">Client / Lead Passenger</label>
+          <input name="passenger_name" className="mt-1 w-full rounded-lg border px-3 py-2" />
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div>
-          <label className="text-sm font-medium">Client / Lead Passenger</label>
-          <input name="passenger_name" className="mt-1 w-full rounded-lg border px-3 py-2" />
-        </div>
-
         <div>
           <label className="text-sm font-medium">Preferred Departure Date</label>
           <input
@@ -127,6 +124,15 @@ export function SeatReservationForm({ flights }: { flights: FlightRow[] }) {
             className="mt-1 w-full rounded-lg border px-3 py-2"
           />
           <div className="mt-1 text-xs text-slate-600">Day: {preferredWeekday}</div>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium">Return Date</label>
+          <input
+            type="date"
+            name="return_date"
+            className="mt-1 w-full rounded-lg border px-3 py-2"
+          />
         </div>
       </div>
 
@@ -178,17 +184,6 @@ export function SeatReservationForm({ flights }: { flights: FlightRow[] }) {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-1">
-        <div>
-          <label className="text-sm font-medium">Return Date</label>
-          <input
-            type="date"
-            name="return_date"
-            className="mt-1 w-full rounded-lg border px-3 py-2"
-          />
-        </div>
-      </div>
-
       <div className="text-sm font-semibold text-slate-900">Passenger Details</div>
 
       {totalPassengers === 0 ? (
@@ -208,29 +203,38 @@ export function SeatReservationForm({ flights }: { flights: FlightRow[] }) {
                 </div>
 
                 <div className="grid gap-3">
-                  <div>
-                    <label className="text-xs font-medium text-slate-700">Full Name</label>
-                    <input
-                      name={`passenger_${passengerNo}_name`}
-                      className="mt-1 w-full rounded-lg border px-3 py-2"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-medium text-slate-700">Nationality</label>
-                    <input
-                      name={`passenger_${passengerNo}_nationality`}
-                      className="mt-1 w-full rounded-lg border px-3 py-2"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-medium text-slate-700">ID / Passport</label>
-                    <input
-                      name={`passenger_${passengerNo}_document`}
-                      className="mt-1 w-full rounded-lg border px-3 py-2"
-                    />
-                  </div>
+                  <input
+                    name={`passenger_${passengerNo}_name`}
+                    placeholder="Full Name"
+                    className="w-full rounded-lg border px-3 py-2"
+                  />
+                  <input
+                    name={`passenger_${passengerNo}_phone`}
+                    placeholder="Phone Number"
+                    className="w-full rounded-lg border px-3 py-2"
+                  />
+                  <input
+                    name={`passenger_${passengerNo}_email`}
+                    placeholder="Email Address"
+                    className="w-full rounded-lg border px-3 py-2"
+                  />
+                  <input
+                    name={`passenger_${passengerNo}_weight`}
+                    type="number"
+                    step="0.1"
+                    placeholder="Weight (kg)"
+                    className="w-full rounded-lg border px-3 py-2"
+                  />
+                  <input
+                    name={`passenger_${passengerNo}_nationality`}
+                    placeholder="Nationality"
+                    className="w-full rounded-lg border px-3 py-2"
+                  />
+                  <input
+                    name={`passenger_${passengerNo}_document`}
+                    placeholder="ID / Passport"
+                    className="w-full rounded-lg border px-3 py-2"
+                  />
                 </div>
               </div>
             );
@@ -241,71 +245,37 @@ export function SeatReservationForm({ flights }: { flights: FlightRow[] }) {
       <div className="text-sm font-semibold text-slate-900">Commercials</div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <div>
-          <label className="text-sm font-medium">Total Cost</label>
-          <input type="number" step="0.01" name="total_cost" defaultValue={0} className="mt-1 w-full rounded-lg border px-3 py-2" />
-        </div>
-        <div>
-          <label className="text-sm font-medium">Demurrage</label>
-          <input type="number" step="0.01" name="demurrage" defaultValue={0} className="mt-1 w-full rounded-lg border px-3 py-2" />
-        </div>
-        <div>
-          <label className="text-sm font-medium">Change Date Fee</label>
-          <input type="number" step="0.01" name="change_date_fee" defaultValue={0} className="mt-1 w-full rounded-lg border px-3 py-2" />
-        </div>
-        <div>
-          <label className="text-sm font-medium">Excess Baggage</label>
-          <input type="number" step="0.01" name="excess_baggage_fee" defaultValue={0} className="mt-1 w-full rounded-lg border px-3 py-2" />
-        </div>
+        <input type="number" step="0.01" name="total_cost" defaultValue={0} placeholder="Total Cost" className="rounded-lg border px-3 py-2" />
+        <input type="number" step="0.01" name="demurrage" defaultValue={0} placeholder="Demurrage" className="rounded-lg border px-3 py-2" />
+        <input type="number" step="0.01" name="change_date_fee" defaultValue={0} placeholder="Change Date Fee" className="rounded-lg border px-3 py-2" />
+        <input type="number" step="0.01" name="excess_baggage_fee" defaultValue={0} placeholder="Excess Baggage" className="rounded-lg border px-3 py-2" />
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <div>
-          <label className="text-sm font-medium">Fuel Surcharge</label>
-          <input type="number" step="0.01" name="fuel_surcharge" defaultValue={0} className="mt-1 w-full rounded-lg border px-3 py-2" />
-        </div>
-        <div>
-          <label className="text-sm font-medium">Credit Card Surcharge</label>
-          <input type="number" step="0.01" name="credit_card_surcharge" defaultValue={0} className="mt-1 w-full rounded-lg border px-3 py-2" />
-        </div>
-        <div>
-          <label className="text-sm font-medium">Departure Taxes</label>
-          <input type="number" step="0.01" name="departure_taxes" defaultValue={0} className="mt-1 w-full rounded-lg border px-3 py-2" />
-        </div>
-        <div>
-          <label className="text-sm font-medium">Include VAT</label>
-          <select
-            name="include_vat"
-            defaultValue="true"
-            className="mt-1 w-full rounded-lg border bg-white px-3 py-2"
-          >
-            <option value="true">Yes</option>
-            <option value="false">No</option>
-          </select>
-        </div>
+        <input type="number" step="0.01" name="fuel_surcharge" defaultValue={0} placeholder="Fuel Surcharge" className="rounded-lg border px-3 py-2" />
+        <input type="number" step="0.01" name="credit_card_surcharge" defaultValue={0} placeholder="Credit Card Surcharge" className="rounded-lg border px-3 py-2" />
+        <input type="number" step="0.01" name="departure_taxes" defaultValue={0} placeholder="Departure Taxes" className="rounded-lg border px-3 py-2" />
+        <select
+          name="include_vat"
+          defaultValue="true"
+          className="rounded-lg border bg-white px-3 py-2"
+        >
+          <option value="true">Include VAT: Yes</option>
+          <option value="false">Include VAT: No</option>
+        </select>
       </div>
-
-      <div className="text-sm font-semibold text-slate-900">Lodging & Notes</div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div>
-          <label className="text-sm font-medium">From Lodge</label>
-          <input name="from_lodge" className="mt-1 w-full rounded-lg border px-3 py-2" />
-        </div>
-        <div>
-          <label className="text-sm font-medium">To Lodge</label>
-          <input name="to_lodge" className="mt-1 w-full rounded-lg border px-3 py-2" />
-        </div>
+        <input name="from_lodge" placeholder="From Lodge" className="rounded-lg border px-3 py-2" />
+        <input name="to_lodge" placeholder="To Lodge" className="rounded-lg border px-3 py-2" />
       </div>
 
-      <div>
-        <label className="text-sm font-medium">Notes</label>
-        <textarea
-          name="notes"
-          rows={3}
-          className="mt-1 w-full rounded-lg border px-3 py-2"
-        />
-      </div>
+      <textarea
+        name="notes"
+        rows={3}
+        placeholder="Notes"
+        className="w-full rounded-lg border px-3 py-2"
+      />
 
       <input type="hidden" name="route_type" value="SEAT_RATE" />
 

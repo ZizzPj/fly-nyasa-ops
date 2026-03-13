@@ -1,55 +1,55 @@
+import Link from "next/link";
 import { requireOpsUser } from "@/lib/auth/guard";
 import { Card } from "@/components/ui/Card";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export default async function ReservationsPage() {
   await requireOpsUser();
 
   return (
     <section className="space-y-6">
-      <div>
-        <div className="text-xs text-slate-600">Reservations</div>
-        <h1 className="mt-1 text-2xl font-semibold">Reservation Operations</h1>
-        <div className="mt-1 text-sm text-slate-700">
-          Create seat and charter reservations, then ticket or cancel them from Bookings.
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Reservations"
+        title="Reservation operations"
+        subtitle="Launch seat and charter reservations with a clearer path into booking control and downstream ticketing."
+      />
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card
-          title="Seat Rate Reservation"
+          title="Seat rate reservation"
           subtitle="Create passenger reservations for scheduled flights."
         >
-          <a
+          <Link
             href="/ops/reservations/new/seat"
-            className="inline-block rounded-lg bg-slate-900 px-4 py-2 text-white"
+            className="button-primary inline-block rounded-full px-4 py-2 text-sm font-semibold"
           >
-            + New Seat Reservation
-          </a>
+            New seat reservation
+          </Link>
         </Card>
 
         <Card
-          title="Charter Reservation"
+          title="Charter reservation"
           subtitle="Reserve the full aircraft and block passenger inventory."
         >
-          <a
+          <Link
             href="/ops/reservations/new/charter"
-            className="inline-block rounded-lg bg-slate-900 px-4 py-2 text-white"
+            className="button-primary inline-block rounded-full px-4 py-2 text-sm font-semibold"
           >
-            + New Charter Reservation
-          </a>
+            New charter reservation
+          </Link>
         </Card>
       </div>
 
       <Card
-        title="Booking Control"
-        subtitle="Review, ticket or cancel active reservations."
+        title="Booking control"
+        subtitle="Review, ticket, or cancel active reservations."
       >
-        <a
+        <Link
           href="/ops/bookings"
-          className="inline-block rounded-lg border px-4 py-2"
+          className="button-secondary inline-block rounded-full px-4 py-2 text-sm font-semibold"
         >
-          Open Bookings
-        </a>
+          Open bookings
+        </Link>
       </Card>
     </section>
   );

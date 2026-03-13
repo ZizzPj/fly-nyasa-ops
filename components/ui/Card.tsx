@@ -12,17 +12,17 @@ export function Card({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-xl border bg-white shadow-sm">
+    <section className="dashboard-panel rounded-[28px]">
       {(title || subtitle || right) && (
-        <div className="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-3 border-b border-[color:var(--border)] px-5 py-5 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            {title && <div className="text-base font-semibold">{title}</div>}
-            {subtitle && <div className="mt-1 text-sm text-slate-600">{subtitle}</div>}
+            {title && <div className="text-base font-semibold tracking-tight text-[color:var(--ink)]">{title}</div>}
+            {subtitle && <div className="mt-1 text-sm text-[color:var(--ink-muted)]">{subtitle}</div>}
           </div>
           {right ? <div className="shrink-0">{right}</div> : null}
         </div>
       )}
-      <div className="p-4">{children}</div>
+      <div className="px-5 py-5">{children}</div>
     </section>
   );
 }

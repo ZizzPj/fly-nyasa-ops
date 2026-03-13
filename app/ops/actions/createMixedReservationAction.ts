@@ -23,10 +23,6 @@ function num(v: FormDataEntryValue | null, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
-function bool(v: FormDataEntryValue | null) {
-  return String(v ?? "") === "true";
-}
-
 function generatePnr() {
   const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   const numbers = "0123456789";
@@ -61,96 +57,105 @@ function extractPassengerDetails(formData: FormData, total: number) {
   return rows;
 }
 
-export async function createSeatReservationAction(formData: FormData) {
+export async function createMixedReservationAction(formData: FormData) {
   await requireOpsUser();
 
-  const flightId = String(formData.get("flight_id") ?? "").trim();
+  const seatFlightId = String(formData.get("seat_flight_id") ?? "").trim();
+  const charterFlightId = String(formData.get("charter_flight_id") ?? "").trim();
   const holdMinutes = num(formData.get("hold_minutes"), 60);
   const adults = num(formData.get("no_of_adults"), 0);
   const children = num(formData.get("no_of_children"), 0);
   const seatCount = adults + children;
 
-  must(flightId, "flight_id");
-  mustUuid(flightId, "flight_id");
+  must(seatFlightId, "seat_flight_id");
+  must(charterFlightId, "charter_flight_id");
+  mustUuid(seatFlightId, "seat_flight_id");
+  mustUuid(charterFlightId, "charter_flight_id");
 
   if (seatCount <= 0) throw new Error("At least 1 passenger is required");
-  if (holdMinutes < 1 || holdMinutes > 2160) {
-    throw new Error("hold_minutes must be between 1 and 2160");
-  }
 
   const sb = await createSupabaseServerClient();
   const { data: u } = await sb.auth.getUser();
-
   const userId = u?.user?.id ?? DEMO_USER_ID;
+
   if (!userId) throw new Error("Missing OPS_DEMO_USER_ID.");
   mustUuid(userId, "user_id");
 
   const supabase = createSupabaseAdminClient();
-
-  const { data: flightRow, error: flightErr } = await supabase
-    .from("v_operational_flights_display")
-    .select("*")
-    .eq("flight_id", flightId)
-    .maybeSingle();
-
-  if (flightErr) throw new Error(flightErr.message);
-  if (!flightRow) throw new Error("Flight not found");
-
   const pnr = generatePnr();
 
-  const { data, error } = await supabase.rpc("ops_create_seat_booking_hold", {
-    p_flight_id: flightId,
+  const passengerDetails = extractPassengerDetails(formData, seatCount);
+
+  const { data: seatData, error: seatErr } = await supabase.rpc("ops_create_seat_booking_hold", {
+    p_flight_id: seatFlightId,
     p_seat_count: seatCount,
     p_user_id: userId,
     p_hold_minutes: holdMinutes,
   });
 
-  if (error) throw new Error(error.message);
+  if (seatErr) throw new Error(seatErr.message);
 
-  const row = Array.isArray(data) ? data[0] : data;
-  const bookingId = row?.booking_id as string | undefined;
-  if (!bookingId) throw new Error("RPC did not return booking_id");
+  const seatBookingId = (Array.isArray(seatData) ? seatData[0] : seatData)?.booking_id as string | undefined;
+  if (!seatBookingId) throw new Error("Seat booking was not created");
 
-  const passengerDetails = extractPassengerDetails(formData, seatCount);
+  const { data: charterData, error: charterErr } = await supabase.rpc("ops_create_charter_booking_hold", {
+    p_flight_id: charterFlightId,
+    p_hold_minutes: holdMinutes,
+    p_user_id: userId,
+  });
 
-  const { error: detailsErr } = await supabase.from("booking_details").insert({
-    booking_id: bookingId,
-    reservation_mode: "SEAT_RATE",
+  if (charterErr) {
+    await supabase.rpc("cancel_booking", { p_booking_id: seatBookingId });
+    throw new Error(charterErr.message);
+  }
+
+  const charterBookingId = (Array.isArray(charterData) ? charterData[0] : charterData)?.booking_id as string | undefined;
+  if (!charterBookingId) {
+    await supabase.rpc("cancel_booking", { p_booking_id: seatBookingId });
+    throw new Error("Charter booking was not created");
+  }
+
+  const commonDetails = {
     pnr,
     booking_date: new Date().toISOString(),
     staff_name: String(formData.get("staff_name") ?? "").trim() || null,
     agent_name: String(formData.get("agent_name") ?? "").trim() || null,
     passenger_name: String(formData.get("passenger_name") ?? "").trim() || null,
-    route_type: "SEAT_RATE",
-    departure_airport_name: flightRow.departure_airport_name ?? null,
-    via_airport_name: flightRow.via_airport_name ?? null,
-    arrival_airport_name: flightRow.arrival_airport_name ?? null,
-    preferred_departure_date:
-      String(formData.get("preferred_departure_date") ?? "").trim() || null,
-    return_required: bool(formData.get("return_required")),
+    preferred_departure_date: String(formData.get("preferred_departure_date") ?? "").trim() || null,
     return_date: String(formData.get("return_date") ?? "").trim() || null,
     no_of_adults: adults,
     no_of_children: children,
-    total_cost: num(formData.get("total_cost"), 0),
-    demurrage: num(formData.get("demurrage"), 0),
-    change_date_fee: num(formData.get("change_date_fee"), 0),
-    excess_baggage_fee: num(formData.get("excess_baggage_fee"), 0),
-    fuel_surcharge: num(formData.get("fuel_surcharge"), 0),
-    credit_card_surcharge: num(formData.get("credit_card_surcharge"), 0),
-    departure_taxes: num(formData.get("departure_taxes"), 0),
-    include_vat: bool(formData.get("include_vat")),
-    from_lodge: String(formData.get("from_lodge") ?? "").trim() || null,
-    to_lodge: String(formData.get("to_lodge") ?? "").trim() || null,
     notes: String(formData.get("notes") ?? "").trim() || null,
     passenger_details_json: passengerDetails,
+  };
+
+  await supabase.from("booking_details").insert([
+    {
+      booking_id: seatBookingId,
+      reservation_mode: "MIXED",
+      route_type: "SEAT_RATE",
+      ...commonDetails,
+    },
+    {
+      booking_id: charterBookingId,
+      reservation_mode: "MIXED",
+      route_type: "CHARTER",
+      ...commonDetails,
+    },
+  ]);
+
+  const { error: mixedErr } = await supabase.from("mixed_reservations").insert({
+    seat_booking_id: seatBookingId,
+    charter_booking_id: charterBookingId,
+    pnr,
   });
 
-  if (detailsErr) throw new Error(detailsErr.message);
+  if (mixedErr) throw new Error(mixedErr.message);
 
   revalidatePath("/ops");
   revalidatePath("/ops/bookings");
   revalidatePath("/ops/flights");
   revalidatePath("/ops/reservations");
 
-  redirect(`/ops/bookings/${bookingId}`);
+  redirect(`/ops/bookings/${seatBookingId}`);
 }

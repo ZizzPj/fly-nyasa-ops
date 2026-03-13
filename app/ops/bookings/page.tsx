@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { requireOpsUser } from "@/lib/auth/guard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { Badge, statusTone } from "@/components/ui/Badge";
 import { routeLabel } from "@/lib/format/routeLabel";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 type BookingRow = {
   booking_id: string;
@@ -58,34 +60,32 @@ export default async function BookingsPage() {
 
   return (
     <section className="space-y-6">
-      <div>
-        <div className="text-xs text-slate-600">Bookings</div>
-        <h1 className="mt-1 text-2xl font-semibold">Booking Control</h1>
-        <div className="mt-1 text-sm text-slate-700">
-          Review reservations, ticket bookings, and cancel inventory safely.
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Bookings"
+        title="Booking control"
+        subtitle="Review reservations, ticket bookings, and cancel inventory from the authoritative commercial operations view."
+      />
 
       <Card
         title="Bookings"
         subtitle="Authoritative booking operations view."
         right={
-          <a
+          <Link
             href="/ops/reservations"
-            className="rounded-lg border bg-white px-3 py-2 text-sm hover:bg-slate-50"
+            className="button-secondary rounded-full px-4 py-2 text-sm font-semibold"
           >
-            Go to Reservations
-          </a>
+            Go to reservations
+          </Link>
         }
       >
         {rows.length === 0 ? (
-          <div className="rounded-xl border bg-slate-50 p-6 text-sm text-slate-700">
+          <div className="rounded-[22px] border border-[color:var(--border)] bg-[color:var(--surface-muted)] p-6 text-sm text-[color:var(--ink-muted)]">
             No bookings found.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border bg-white">
+          <div className="dashboard-table overflow-x-auto rounded-[24px]">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left">
+              <thead className="text-left text-[color:var(--ink-muted)]">
                 <tr className="[&>th]:px-4 [&>th]:py-3">
                   <th>Booking</th>
                   <th>Type</th>
@@ -103,7 +103,7 @@ export default async function BookingsPage() {
               </thead>
               <tbody className="[&>tr>td]:px-4 [&>tr>td]:py-3">
                 {rows.map((r) => (
-                  <tr key={r.booking_id} className="border-t hover:bg-slate-50">
+                  <tr key={r.booking_id}>
                     <td className="font-semibold">{r.booking_id}</td>
                     <td>
                       <Badge tone={statusTone(r.booking_type)}>{r.booking_type ?? "—"}</Badge>
@@ -112,9 +112,9 @@ export default async function BookingsPage() {
                       <Badge tone={statusTone(r.status)}>{r.status ?? "—"}</Badge>
                     </td>
                     <td>
-                      <a className="underline" href={`/ops/flights/${r.flight_id}`}>
+                      <Link className="underline decoration-[color:var(--brand)] underline-offset-4" href={`/ops/flights/${r.flight_id}`}>
                         {r.flight_number ?? r.flight_id}
-                      </a>
+                      </Link>
                     </td>
                     <td>
                       {routeLabel({
@@ -130,12 +130,12 @@ export default async function BookingsPage() {
                     <td className="text-right">{money(r.total_cost)}</td>
                     <td>{fmt(r.created_at)}</td>
                     <td>
-                      <a
+                      <Link
                         href={`/ops/bookings/${r.booking_id}`}
-                        className="rounded-lg border bg-white px-3 py-1.5 text-xs hover:bg-slate-50"
+                        className="button-secondary rounded-full px-3 py-1.5 text-xs font-semibold"
                       >
                         Open
-                      </a>
+                      </Link>
                     </td>
                   </tr>
                 ))}
